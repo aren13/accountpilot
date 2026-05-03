@@ -95,5 +95,18 @@ python_version = "3.11"
 strict = true
 
 [[tool.mypy.overrides]]
-module = "typedstream.*"
+module = [
+    "typedstream.*",
+    "msal.*",
+    "aioimaplib.*",
+    "google_auth_oauthlib.*",
+    "mailparser.*",
+]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# mail/oauth.py is the legacy SP1 device-code flow superseded by core/oauth/.
+# Two msal-returning helpers fail no-any-return without stubs.
+module = "accountpilot.plugins.mail.oauth"
+disallow_any_explicit = false
+warn_return_any = false
