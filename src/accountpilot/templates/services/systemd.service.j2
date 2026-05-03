@@ -1,0 +1,19 @@
+[Unit]
+Description=AccountPilot {{ plugin }} daemon
+After=default.target
+
+[Service]
+Type=simple
+ExecStart={{ accountpilot_bin }} {{ plugin }} daemon
+Restart=always
+RestartSec=5
+WorkingDirectory={{ data_dir }}
+StandardOutput=append:{{ log_dir }}/{{ plugin }}.daemon.stdout.log
+StandardError=append:{{ log_dir }}/{{ plugin }}.daemon.stderr.log
+Environment=PATH={{ env_path }}
+{%- for k, v in extra_env.items() %}
+Environment={{ k }}={{ v }}
+{%- endfor %}
+
+[Install]
+WantedBy=default.target

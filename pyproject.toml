@@ -1,0 +1,99 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "accountpilot"
+version = "0.1.0"
+description = "Unified per-machine account sync framework — email, iMessage, calendar, and more"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Hasan Arda Eren", email = "ardaeren13@gmail.com" }]
+keywords = ["email", "imap", "imessage", "personal-data", "sync", "archive", "search", "oauth"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications :: Email",
+    "Topic :: Communications :: Email :: Email Clients (MUA)",
+    "Topic :: Database",
+    "Typing :: Typed",
+]
+dependencies = [
+    "aioimaplib",
+    "aiosmtplib",
+    "aiosqlite",
+    "pydantic>=2.0",
+    "click>=8.0",
+    "pyyaml",
+    "python-dateutil",
+    "mail-parser",
+    "msal",
+    "phonenumbers>=8.13",     # E.164 normalization for identity
+    "platformdirs>=4.0",
+    "watchdog>=4.0",
+    "google-auth>=2.0",
+    "google-auth-oauthlib>=1.0",
+    "pytypedstream>=0.1",     # iMessage attributedBody decoder (LGPL-3.0)
+    "jinja2>=3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/aren13/accountpilot"
+Repository = "https://github.com/aren13/accountpilot"
+Issues = "https://github.com/aren13/accountpilot/issues"
+Changelog = "https://github.com/aren13/accountpilot/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "types-PyYAML",
+    "pre-commit",
+]
+
+[project.scripts]
+accountpilot = "accountpilot.cli:cli"
+
+[project.entry-points."accountpilot.plugins"]
+mail = "accountpilot.plugins.mail.plugin:MailPlugin"
+imessage = "accountpilot.plugins.imessage.plugin:IMessagePlugin"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/accountpilot"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/accountpilot/templates/services/launchd.plist.j2" = "accountpilot/templates/services/launchd.plist.j2"
+"src/accountpilot/templates/services/systemd.service.j2" = "accountpilot/templates/services/systemd.service.j2"
+
+[tool.ruff]
+target-version = "py311"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "A", "SIM", "TCH"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"          # NEW: pytest-asyncio runs all async tests automatically
+pythonpath = [".", "src"]      # NEW: lets integration tests import tests.accountpilot.fixtures.*
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "typedstream.*"
+ignore_missing_imports = true

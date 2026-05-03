@@ -1,0 +1,31 @@
+# Example AccountPilot config.
+# Copy to ~/.config/accountpilot/config.yaml (or
+# ~/Library/Application Support/accountpilot/config.yaml on macOS)
+# and edit. Apply with `accountpilot setup`.
+
+version: 1
+
+owners:
+  - name: Your Name
+    surname: ""
+    identifiers:
+      - { kind: email, value: you@example.com }
+      # Add phone for cross-source identity unification with iMessage:
+      # - { kind: phone, value: "+15551234567" }   # E.164 format
+
+plugins:
+  mail:
+    enabled: true
+    accounts:
+      - identifier: you@example.com
+        owner: you@example.com
+        provider: gmail   # gmail | outlook | imap-generic
+        # OAuth (recommended) — first run: accountpilot oauth login google 1
+        credentials_ref: "oauth:google:1"
+        # OR password (legacy): credentials_ref: "password_cmd:security find-generic-password ..."
+
+  imessage:    # macOS only
+    enabled: true
+    accounts:
+      - identifier: "+15551234567"   # your iCloud-tied phone in E.164
+        owner: "you@example.com"
