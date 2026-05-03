@@ -22,6 +22,7 @@ import asyncio
 import contextlib
 import platform
 import subprocess
+import time
 from pathlib import Path
 
 import click
@@ -92,11 +93,17 @@ def _probe_imessage_fda() -> None:
         click.echo(
             "     1. Open System Settings → Privacy & Security → Full Disk Access"
         )
-        click.echo(f"     2. Click +, navigate to: {binary}")
+        click.echo(
+            "     2. Find 'accountpilot-fda-helper' in the list and toggle it on."
+        )
+        click.echo(f"        (If it's not there, click +, navigate to: {binary})")
         click.echo("     3. Re-run `accountpilot setup` to verify")
         click.echo()
-        # Deep-link into the right pane. Best-effort — silent on
-        # headless / missing `open` (e.g. SSH session).
+        # Give TCC a moment to commit the just-denied access record so
+        # the helper appears in the FDA pane the moment we open it.
+        # Deep-link into the right pane — best-effort, silent on
+        # headless contexts where `open` is missing (SSH sessions).
+        time.sleep(1.0)
         with contextlib.suppress(OSError):
             subprocess.run(["open", _PRIVACY_PANE_URL], check=False)
         return
