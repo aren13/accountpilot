@@ -5,15 +5,25 @@
 #         dist/accountpilot-fda-helper-<v>-<arch>.tar.gz  (release artifact)
 #         dist/SHA256SUMS                          (sha256 of every dist/ file)
 #
-# Required env vars:
-#   APPLE_DEV_ID         e.g. "Developer ID Application: Hasan Arda Eren (TEAM12345)"
-#   APPLE_TEAM_ID        e.g. "TEAM12345"
-#   APPLE_NOTARY_PROFILE keychain profile created via:
-#                          xcrun notarytool store-credentials \
-#                            --apple-id you@example.com \
-#                            --team-id TEAM12345 \
-#                            --password APP-SPECIFIC-PASSWORD \
-#                            <profile-name>
+# Codesign identity (defaults to FAZLA GIDA ANONIM SIRKETI org cert):
+#   APPLE_DEV_ID         e.g. "Developer ID Application: ... (TEAMID)"
+#   APPLE_TEAM_ID        e.g. "P2R7PD8VGY"
+#
+# Notarization auth — pick one mode:
+#
+#   Mode A (local dev, App-Specific Password via keychain profile):
+#     APPLE_NOTARY_PROFILE   created via:
+#                              xcrun notarytool store-credentials \
+#                                --apple-id you@example.com \
+#                                --team-id <TEAMID> \
+#                                --password <APP-SPECIFIC-PASSWORD> \
+#                                <profile-name>
+#
+#   Mode B (CI, App Store Connect API key — preferred for automation):
+#     APPLE_API_KEY_PATH     path to the .p8 issued at
+#                            https://appstoreconnect.apple.com/access/api
+#     APPLE_API_KEY_ID       the 10-character key ID
+#     APPLE_API_ISSUER_ID    the UUID issuer ID for your team
 #
 # Optional:
 #   HELPER_VERSION       overrides version baked into the tarball name.
@@ -26,7 +36,21 @@ cd "$(dirname "$0")/../helpers/fda-helper"
 # Override via env vars if signing under a different identity.
 : "${APPLE_DEV_ID:=Developer ID Application: FAZLA GIDA ANONIM SIRKETI (P2R7PD8VGY)}"
 : "${APPLE_TEAM_ID:=P2R7PD8VGY}"
-: "${APPLE_NOTARY_PROFILE:=accountpilot-notary}"
+
+# Resolve notarization auth: API key (mode B) takes precedence if set,
+# else fall back to the local keychain profile (mode A).
+if [[ -n "${APPLE_API_KEY_PATH:-}" ]]; then
+    if [[ -z "${APPLE_API_KEY_ID:-}" || -z "${APPLE_API_ISSUER_ID:-}" ]]; then
+        echo "error: APPLE_API_KEY_PATH set but APPLE_API_KEY_ID or APPLE_API_ISSUER_ID is missing" >&2
+        exit 64
+    fi
+    NOTARY_AUTH=(--key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID")
+    echo "==> notary auth: App Store Connect API key"
+else
+    : "${APPLE_NOTARY_PROFILE:=accountpilot-notary}"
+    NOTARY_AUTH=(--keychain-profile "$APPLE_NOTARY_PROFILE")
+    echo "==> notary auth: keychain profile '$APPLE_NOTARY_PROFILE'"
+fi
 
 ARCH="$(uname -m)"   # arm64 or x86_64
 VERSION="${HELPER_VERSION:-$(grep -m1 'HELPER_VERSION' Sources/AccountpilotFDAHelper/main.swift | sed -E 's/.*"([^"]+)".*/\1/')}"
@@ -63,9 +87,7 @@ rm -f "$ZIP"
 ditto -c -k --keepParent "$OUT" "$ZIP"
 
 echo "==> notarytool submit --wait"
-xcrun notarytool submit "$ZIP" \
-    --keychain-profile "$APPLE_NOTARY_PROFILE" \
-    --wait
+xcrun notarytool submit "$ZIP" "${NOTARY_AUTH[@]}" --wait
 
 echo "==> spctl --assess (Gatekeeper acceptance, advisory)"
 # spctl --type execute only validates .app bundles. For a bare CLI

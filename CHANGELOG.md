@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] — 2026-05-04 (AP-SP4)
+
+### Added
+- **Signed FDA helper for iMessage.** `accountpilot-fda-helper` is a
+  Developer-ID-signed Swift CLI (team `P2R7PD8VGY`,
+  `com.accountpilot.fda-helper`) that mediates all
+  `~/Library/Messages/chat.db` reads. Its cdhash is stable across
+  AccountPilot and Python upgrades, so the macOS Full Disk Access
+  grant survives `brew upgrade python@3.13` — the underlying issue
+  that made AccountPilot effectively undistributable to non-technical
+  users on previous releases. See
+  [`docs/imessage-fda.md`](docs/imessage-fda.md) and
+  [`helpers/fda-helper/PROTOCOL.md`](helpers/fda-helper/PROTOCOL.md)
+  for the rationale and IPC contract.
+- `accountpilot.plugins.imessage.helper_client` — subprocess client
+  for the helper, plus `record_to_imessage()` for converting
+  helper-emitted JSON-Lines records into `IMessageMessage` models.
+- `scripts/release-helper.sh` — local build/sign/notarize/staple
+  pipeline (defaults to FAZLA GIDA ANONIM SIRKETI cert; env-driven
+  for other identities and CI).
+- `accountpilot setup` now probes Full Disk Access on iMessage-enabled
+  configs. On `EACCES` it deep-links into System Settings → Privacy
+  & Security → Full Disk Access with copy guiding the user through
+  toggling the auto-populated entry on.
+- `.github/workflows/publish-pypi.yml` — Trusted Publishing for the
+  Python sdist + wheel on `v*` tags.
+- `.github/workflows/release-helper.yml` — Builds, signs, and notarizes
+  the helper on `fda-helper-v*` tags. Runs on `macos-14` with the
+  Developer ID cert imported from secrets and notarytool authenticated
+  via App Store Connect API key.
+- `docs/ci-setup.md` walks operators through one-time GitHub secret
+  configuration for both workflows.
+
+### Changed
+- `accountpilot.plugins.imessage.reader.ChatDbReader` is now a thin
+  façade over `helper_client`. The previous direct
+  `sqlite3.connect(chat.db)` path is removed (hard cutover); existing
+  users will need to grant FDA to the helper once and the grant then
+  persists.
+- iMessage tests stub `helper_client.iter_records` with an autouse
+  fixture (`patch_helper_client` in `tests/.../conftest.py`) so the
+  existing synthetic-chat.db suite runs without needing the Swift
+  toolchain or a built helper binary.
+
+### Removed
+- `accountpilot.plugins.imessage.attachments` module
+  (`AttachmentReader`, `load_attachments_for_message`). Disk reads of
+  attachment files are now performed by the helper, base64-encoded,
+  and inlined into the JSON-Lines message records.
+
+### Distribution
+- Homebrew tap (`aren13/tap`) bundles the signed helper as a
+  `Resource` block fetched from GitHub Releases on Apple Silicon Mac.
+  Mail-only users on Linux or Intel Mac install the formula without
+  the helper. `brew upgrade` no longer requires the user to re-grant
+  Full Disk Access.
+
 ## [Unreleased] — 2026-05-02 (AP-SP3)
 
 ### Added

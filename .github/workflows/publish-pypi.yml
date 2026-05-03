@@ -1,0 +1,70 @@
+name: Publish to PyPI
+
+# Builds the sdist + wheel from the tagged commit and publishes them
+# to PyPI via OIDC Trusted Publishing — no API token stored anywhere.
+#
+# Setup (one-time, on PyPI):
+#   1. Log in to https://pypi.org with the project owner account.
+#   2. Manage project → Publishing → Add a new pending publisher:
+#        Owner:           aren13
+#        Repository name: accountpilot
+#        Workflow name:   publish-pypi.yml
+#        Environment:     pypi
+#   3. Save.
+#
+# To release:
+#   git tag v0.1.1
+#   git push --tags
+# This workflow will build, validate, and publish.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install build tooling
+        run: pip install build twine
+
+      - name: Build sdist + wheel
+        run: python -m build
+
+      - name: Validate distributions
+        run: python -m twine check dist/*
+
+      - name: Upload distributions for the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: pypi-distributions
+          path: dist/
+
+  publish:
+    name: Publish to PyPI (OIDC)
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/accountpilot
+    permissions:
+      id-token: write   # required for OIDC trusted publishing
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: pypi-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
