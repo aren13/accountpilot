@@ -19,8 +19,22 @@ archive of their own data.
 
 ## Installation
 
+**Homebrew (macOS / Linuxbrew):**
+
+```bash
+brew install aren13/tap/accountpilot
+```
+
+**pip:**
+
 ```bash
 pip install accountpilot
+```
+
+**pipx** (recommended for CLI-only use, isolates dependencies):
+
+```bash
+pipx install accountpilot
 ```
 
 Requires Python 3.11+. macOS or Linux. (iMessage support is macOS-only;
