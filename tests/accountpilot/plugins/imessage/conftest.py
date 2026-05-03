@@ -1,20 +1,32 @@
 """Build a synthetic chat.db file with the minimal Apple-shaped schema.
 
 Apple's real chat.db has dozens of tables and hundreds of columns; we
-mirror only what ChatDbReader joins on. This keeps tests independent of
-macOS Full Disk Access and runnable on any platform.
+mirror only what the FDA helper joins on. This keeps tests independent
+of macOS Full Disk Access and runnable on any platform.
+
+In production the Swift helper at helpers/fda-helper/ is the only path
+that reads chat.db. Tests stub helper_client.iter_records via the
+``patch_helper_client`` autouse fixture below — it runs the same JOIN
+query the helper does, against the synthetic SQLite file, and emits
+the dict-shaped JSON-Lines records the helper would produce. This lets
+the existing integration tests exercise the full plugin pipeline
+without needing the Swift toolchain or a built helper binary.
 """
 
 from __future__ import annotations
 
+import base64
 import sqlite3
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
+from accountpilot.plugins.imessage import helper_client, reader
+
 if TYPE_CHECKING:
-    from pathlib import Path
+    from collections.abc import Iterator
 
 # Apple's epoch is 2001-01-01 UTC; chat.db stores `date` as nanoseconds
 # since that epoch.
@@ -194,3 +206,128 @@ def insert_attachment(
     conn.close()
     assert att_rowid is not None
     return att_rowid
+
+
+# ─── Helper-binary stub ───────────────────────────────────────────────
+
+
+def _python_iter_records(
+    *,
+    chat_db_path: Path | None = None,
+    since_ns: int | None = None,
+    helper_path: Path | None = None,  # noqa: ARG001 — accepted for signature parity
+) -> Iterator[dict[str, Any]]:
+    """Drop-in for helper_client.iter_records that reads a synthetic SQLite.
+
+    Re-implements the Swift helper's JOIN query in Python so tests can
+    exercise the full plugin pipeline without needing the signed helper
+    binary or macOS FDA. Emits the same dict shape the helper does
+    (PROTOCOL.md v1).
+    """
+    if chat_db_path is None:
+        raise RuntimeError(
+            "test stub requires an explicit chat_db_path; production calls "
+            "the signed helper which defaults to ~/Library/Messages/chat.db"
+        )
+    uri = f"file:{chat_db_path}?mode=ro"
+    conn = sqlite3.connect(uri, uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        sql = """
+            SELECT
+                m.ROWID                AS msg_rowid,
+                m.guid                 AS guid,
+                m.text                 AS text,
+                m.attributedBody       AS attributed_body,
+                m.is_from_me           AS is_from_me,
+                COALESCE(m.is_read, 0) AS is_read,
+                m.date                 AS date_ns,
+                m.date_read            AS date_read_ns,
+                m.service              AS service,
+                h.id                   AS sender_handle,
+                c.guid                 AS chat_guid
+            FROM message m
+            LEFT JOIN handle h ON h.ROWID = m.handle_id
+            JOIN chat_message_join cmj ON cmj.message_id = m.ROWID
+            JOIN chat c ON c.ROWID = cmj.chat_id
+            WHERE h.id IS NOT NULL
+        """
+        params: tuple[int, ...] = ()
+        if since_ns is not None:
+            sql += " AND m.date > ?"
+            params = (since_ns,)
+        sql += " ORDER BY m.date ASC, m.ROWID ASC"
+
+        for row in conn.execute(sql, params):
+            participants = [
+                p["id"]
+                for p in conn.execute(
+                    "SELECT h.id FROM chat_handle_join chj "
+                    "JOIN handle h ON h.ROWID = chj.handle_id "
+                    "WHERE chj.chat_id = (SELECT ROWID FROM chat WHERE guid=?)",
+                    (row["chat_guid"],),
+                )
+            ]
+            attachments: list[dict[str, Any]] = []
+            for att in conn.execute(
+                "SELECT a.filename, a.mime_type, a.transfer_name "
+                "FROM attachment a "
+                "JOIN message_attachment_join maj ON maj.attachment_id = a.ROWID "
+                "WHERE maj.message_id = ?",
+                (row["msg_rowid"],),
+            ):
+                raw_path = att["filename"]
+                if not raw_path:
+                    continue
+                resolved = Path(
+                    raw_path.replace("~/", str(Path.home()) + "/")
+                    if raw_path.startswith("~/")
+                    else raw_path
+                )
+                try:
+                    content = resolved.read_bytes()
+                except (FileNotFoundError, IsADirectoryError, PermissionError):
+                    continue
+                display = att["transfer_name"] or resolved.name or "attachment.bin"
+                attachments.append(
+                    {
+                        "filename": display,
+                        "mime_type": att["mime_type"],
+                        "content_b64": base64.b64encode(content).decode(),
+                    }
+                )
+            attr_blob = row["attributed_body"]
+            yield {
+                "v": 1,
+                "type": "message",
+                "guid": row["guid"],
+                "text": row["text"],
+                "attributed_body_b64": (
+                    base64.b64encode(attr_blob).decode() if attr_blob else None
+                ),
+                "is_from_me": bool(row["is_from_me"]),
+                "is_read": bool(row["is_read"]),
+                "date_ns": int(row["date_ns"]),
+                "date_read_ns": int(row["date_read_ns"])
+                if row["date_read_ns"]
+                else None,
+                "service": row["service"] or "iMessage",
+                "sender_handle": row["sender_handle"],
+                "chat_guid": row["chat_guid"],
+                "participants": participants,
+                "attachments": attachments,
+            }
+    finally:
+        conn.close()
+
+
+@pytest.fixture(autouse=True)
+def patch_helper_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Replace helper_client.iter_records with the in-Python stub.
+
+    Autouse so every test in the iMessage suite runs against the stub
+    by default. Tests that need the production subprocess path can
+    monkeypatch back, but no test currently does.
+    """
+    monkeypatch.setattr(helper_client, "iter_records", _python_iter_records)
+    monkeypatch.setattr(reader, "iter_records", _python_iter_records)

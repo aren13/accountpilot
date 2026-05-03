@@ -19,6 +19,9 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import platform
+import subprocess
 from pathlib import Path
 
 import click
@@ -29,6 +32,82 @@ from accountpilot.core.config import load_config
 from accountpilot.core.db.connection import open_db
 from accountpilot.core.models import Identifier
 from accountpilot.core.storage import Storage
+
+# A timestamp deep in the future — `read-imessages --since-ns N` returns
+# zero rows but proves the helper can open chat.db, which is what we
+# care about for FDA probing. 2^62 ns ≈ year 2147 in Apple's epoch and
+# fits in the helper's Int64 parser without overflow.
+_FDA_PROBE_SINCE_NS = 1 << 62
+
+_PRIVACY_PANE_URL = (
+    "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
+)
+
+
+def _probe_imessage_fda() -> None:
+    """Run a zero-row read-imessages call to verify FDA + helper install.
+
+    Prints status to stdout and, on EACCES, deep-links into System
+    Settings → Privacy & Security → Full Disk Access. Never raises —
+    this is best-effort onboarding, not a hard prerequisite for setup.
+    """
+    if platform.system() != "Darwin":
+        return  # iMessage is macOS-only
+
+    # Local import keeps the heavy plugin import out of `setup` for
+    # users who never enable iMessage.
+    from accountpilot.plugins.imessage import helper_client
+
+    try:
+        binary = helper_client.find_helper_binary()
+    except helper_client.HelperNotInstalledError as exc:
+        click.echo(
+            click.style("⚠ accountpilot-fda-helper not found.", fg="yellow"),
+            err=True,
+        )
+        click.echo(f"   {exc}", err=True)
+        click.echo(
+            "   iMessage sync needs the signed helper. "
+            "Install via `brew install aren13/tap/accountpilot`.",
+            err=True,
+        )
+        return
+
+    try:
+        # Drain to EOF so the subprocess closes cleanly.
+        for _ in helper_client.iter_records(
+            since_ns=_FDA_PROBE_SINCE_NS,
+            helper_path=binary,
+        ):
+            pass
+    except helper_client.HelperPermissionError:
+        click.echo(
+            click.style(
+                "⚠ Full Disk Access not granted to the FDA helper.",
+                fg="yellow",
+            )
+        )
+        click.echo(f"   helper:  {binary}")
+        click.echo("   To grant FDA:")
+        click.echo(
+            "     1. Open System Settings → Privacy & Security → Full Disk Access"
+        )
+        click.echo(f"     2. Click +, navigate to: {binary}")
+        click.echo("     3. Re-run `accountpilot setup` to verify")
+        click.echo()
+        # Deep-link into the right pane. Best-effort — silent on
+        # headless / missing `open` (e.g. SSH session).
+        with contextlib.suppress(OSError):
+            subprocess.run(["open", _PRIVACY_PANE_URL], check=False)
+        return
+    except helper_client.HelperError as exc:
+        click.echo(
+            click.style(f"⚠ helper probe failed: {exc}", fg="yellow"),
+            err=True,
+        )
+        return
+
+    click.echo(click.style("✓ FDA helper reachable, chat.db readable.", fg="green"))
 
 
 @click.command("setup")
@@ -88,3 +167,9 @@ def setup_cmd(config_path: Path, db_path: Path) -> None:
         click.echo(f"setup applied: {config_path} -> {db_path}")
 
     asyncio.run(_run())
+
+    # If iMessage is enabled, verify the FDA helper is reachable and
+    # has permission to read chat.db. Best-effort; no hard fail.
+    imessage_cfg = cfg.plugins.get("imessage")
+    if imessage_cfg is not None and imessage_cfg.enabled:
+        _probe_imessage_fda()
