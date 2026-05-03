@@ -38,8 +38,10 @@ def status_cmd(db_path: Path) -> None:
     """Per-account health summary."""
 
     async def _run() -> None:
-        async with open_db(db_path) as db, db.execute(
-            """
+        async with (
+            open_db(db_path) as db,
+            db.execute(
+                """
             SELECT a.id, a.source, a.account_identifier, a.enabled,
                    p.name || COALESCE(' ' || p.surname, '') AS owner_name,
                    (SELECT COUNT(*) FROM messages m WHERE m.account_id=a.id)
@@ -50,7 +52,8 @@ def status_cmd(db_path: Path) -> None:
             LEFT JOIN sync_status s ON s.account_id = a.id
             ORDER BY a.id
             """
-        ) as cur:
+            ) as cur,
+        ):
             rows = await cur.fetchall()
         if not rows:
             click.echo("no accounts.")

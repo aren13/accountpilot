@@ -23,7 +23,8 @@ from typing import Any
 
 
 def google_interactive_login(
-    client_config: dict[str, Any], scopes: list[str],
+    client_config: dict[str, Any],
+    scopes: list[str],
 ) -> dict[str, Any]:
     """Run Google's InstalledAppFlow; return fields needed by the
     Google OAuth handler."""
@@ -40,7 +41,9 @@ def google_interactive_login(
 
 
 def microsoft_interactive_login(
-    client_id: str, authority: str, scopes: list[str],
+    client_id: str,
+    authority: str,
+    scopes: list[str],
 ) -> dict[str, Any]:
     """Run msal's interactive flow; return fields needed by the
     Microsoft OAuth handler."""

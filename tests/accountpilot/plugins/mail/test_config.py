@@ -35,7 +35,8 @@ def test_account_oauth_method() -> None:
 def test_account_rejects_unknown_provider() -> None:
     with pytest.raises(ValidationError):
         MailAccountConfig(
-            identifier="x@y", owner="x@y",
+            identifier="x@y",
+            owner="x@y",
             provider="aol",  # type: ignore[arg-type]
             credentials_ref=None,
         )

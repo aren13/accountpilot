@@ -37,9 +37,7 @@ class AccountPilotPlugin(ABC):
 
     name: ClassVar[str]
 
-    def __init__(
-        self, config: dict[str, Any], storage: Any, secrets: Secrets
-    ) -> None:
+    def __init__(self, config: dict[str, Any], storage: Any, secrets: Secrets) -> None:
         self.config = config
         self.storage = storage
         self.secrets = secrets

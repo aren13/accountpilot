@@ -65,7 +65,8 @@ def login_google(account_id: int, config_dir: Path, secrets_root: Path) -> None:
         )
     client_config = json.loads(client_path.read_text())
     payload = oauth_flow.google_interactive_login(
-        client_config, scopes=_GOOGLE_SCOPES,
+        client_config,
+        scopes=_GOOGLE_SCOPES,
     )
     out = secrets_root / "oauth" / "google" / f"{account_id}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -89,7 +90,9 @@ def login_google(account_id: int, config_dir: Path, secrets_root: Path) -> None:
     show_default="$ACCOUNTPILOT_DATA_DIR/secrets",
 )
 def login_microsoft(
-    account_id: int, config_dir: Path, secrets_root: Path,
+    account_id: int,
+    config_dir: Path,
+    secrets_root: Path,
 ) -> None:
     """Run Microsoft msal interactive flow and persist refresh token."""
     client_path = config_dir / "oauth_clients" / "microsoft.json"

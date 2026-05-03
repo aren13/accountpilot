@@ -47,9 +47,7 @@ class MailPlugin(AccountPilotPlugin):
 
     name: ClassVar[str] = "mail"
 
-    def __init__(
-        self, config: dict[str, Any], storage: Any, secrets: Secrets
-    ) -> None:
+    def __init__(self, config: dict[str, Any], storage: Any, secrets: Secrets) -> None:
         super().__init__(config=config, storage=storage, secrets=secrets)
         self._cfg = MailPluginConfig.model_validate(config)
         # Map of account_identifier → MailAccountConfig for lookups.
@@ -67,9 +65,7 @@ class MailPlugin(AccountPilotPlugin):
         SimpleNamespace objects rather than refactoring the client to take
         primitives — that refactor is deferred to SP3.
         """
-        host, port = _PROVIDER_HOSTS.get(
-            account.provider, ("imap.gmail.com", 993)
-        )
+        host, port = _PROVIDER_HOSTS.get(account.provider, ("imap.gmail.com", 993))
         credential = (
             self.secrets.resolve(account.credentials_ref)
             if account.credentials_ref
@@ -81,8 +77,7 @@ class MailPlugin(AccountPilotPlugin):
         # field is no longer consulted — the credentials_ref scheme is
         # the single source of truth.
         is_oauth = bool(
-            account.credentials_ref
-            and account.credentials_ref.startswith("oauth:")
+            account.credentials_ref and account.credentials_ref.startswith("oauth:")
         )
         auth_method = "oauth2" if is_oauth else "password"
 
@@ -129,9 +124,7 @@ class MailPlugin(AccountPilotPlugin):
     async def setup(self) -> None:
         log.info("mail plugin setup: %d account(s) configured", len(self._accounts))
 
-    async def backfill(
-        self, account_id: int, *, since: datetime | None = None
-    ) -> None:
+    async def backfill(self, account_id: int, *, since: datetime | None = None) -> None:
         await self.sync_once(account_id)
         await self._mark_backfilled(account_id)
 

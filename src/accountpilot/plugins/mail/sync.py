@@ -31,9 +31,7 @@ if TYPE_CHECKING:
 
 
 class _ImapClientProto(Protocol):
-    async def fetch_uids(
-        self, folder: str, *, since_uid: int = 0
-    ) -> list[int]: ...
+    async def fetch_uids(self, folder: str, *, since_uid: int = 0) -> list[int]: ...
     async def fetch_message(self, folder: str, uid: int) -> bytes: ...
 
 

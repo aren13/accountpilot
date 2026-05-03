@@ -26,7 +26,7 @@ class FakeImapClient:
         return [u for (u, _) in self._data.get(folder, []) if u > since_uid]
 
     async def fetch_message(self, folder: str, uid: int) -> bytes:
-        for (u, raw) in self._data.get(folder, []):
+        for u, raw in self._data.get(folder, []):
             if u == uid:
                 return raw
         raise KeyError(f"uid {uid} not in {folder}")

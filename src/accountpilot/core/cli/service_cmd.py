@@ -182,8 +182,7 @@ def _status_launchd() -> None:
         text=True,
     )
     matches = [
-        line for line in result.stdout.splitlines()
-        if "com.accountpilot." in line
+        line for line in result.stdout.splitlines() if "com.accountpilot." in line
     ]
     if not matches:
         click.echo("no AccountPilot daemons registered")

@@ -67,9 +67,11 @@ class _DebouncedChatDbHandler(FileSystemEventHandler):
         # chat.db's directory may also see writes to chat.db-wal /
         # chat.db-shm (SQLite WAL files). Treat those as relevant too.
         path = Path(str(event.src_path)).resolve()
-        if path.name in {self._target.name,
-                         self._target.name + "-wal",
-                         self._target.name + "-shm"}:
+        if path.name in {
+            self._target.name,
+            self._target.name + "-wal",
+            self._target.name + "-shm",
+        }:
             self._schedule()
 
     on_created = on_modified  # WAL files may be (re)created mid-write
@@ -94,7 +96,9 @@ class ChatDbWatcher:
     ) -> None:
         self._chat_db = chat_db_path.resolve()
         self._handler = _DebouncedChatDbHandler(
-            self._chat_db, on_change, debounce_seconds,
+            self._chat_db,
+            on_change,
+            debounce_seconds,
         )
         self._observer: Observer | None = None  # type: ignore[valid-type]
         self._inode_poll_seconds = inode_poll_seconds

@@ -27,6 +27,7 @@ def _seed(db_path: Path) -> None:
                 (datetime.now(UTC).isoformat(), datetime.now(UTC).isoformat()),
             )
             await db.commit()
+
     asyncio.run(_run())
 
 

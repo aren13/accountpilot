@@ -1,5 +1,6 @@
 """End-to-end check that ACCOUNTPILOT_DATA_DIR + ACCOUNTPILOT_CONFIG_DIR
 flow through the CLI option defaults to the actual filesystem writes."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -26,7 +27,8 @@ plugins: {}
 
 
 def test_setup_writes_under_env_override(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """ACCOUNTPILOT_{DATA,CONFIG}_DIR override the default Path.home()
     dance — ``accountpilot setup`` (no path args) writes the DB and

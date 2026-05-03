@@ -63,7 +63,8 @@ def _config_option(f: Any) -> Any:
 
 @asynccontextmanager
 async def _opened_plugin(
-    config_path: Path, db_path: Path,
+    config_path: Path,
+    db_path: Path,
 ) -> AsyncIterator[tuple[IMessagePlugin, Storage]]:
     """Open DB, build Storage + IMessagePlugin, yield. Closes DB on exit."""
     cfg = load_config(config_path)
@@ -87,7 +88,9 @@ async def _opened_plugin(
     async with open_db(db_path) as db:
         storage = Storage(db, cas)
         plugin = IMessagePlugin(
-            config=im_cfg_dict, storage=storage, secrets=Secrets({}),
+            config=im_cfg_dict,
+            storage=storage,
+            secrets=Secrets({}),
         )
         yield plugin, storage
 
@@ -97,7 +100,9 @@ async def _opened_plugin(
 @_db_option
 @_config_option
 def imessage_backfill(
-    account_id: int, db_path: Path, config_path: Path,
+    account_id: int,
+    db_path: Path,
+    config_path: Path,
 ) -> None:
     """One-shot historical pull from chat.db for an account."""
 
@@ -115,7 +120,9 @@ def imessage_backfill(
 @_db_option
 @_config_option
 def imessage_sync(
-    account_id: int, db_path: Path, config_path: Path,
+    account_id: int,
+    db_path: Path,
+    config_path: Path,
 ) -> None:
     """One incremental sync pass."""
 
@@ -142,7 +149,9 @@ def imessage_sync(
 @_db_option
 @_config_option
 def imessage_daemon(
-    account_id: int | None, db_path: Path, config_path: Path,
+    account_id: int | None,
+    db_path: Path,
+    config_path: Path,
 ) -> None:
     """Long-running daemon: watches chat.db and syncs on each change."""
     from accountpilot.core.logging import configure_daemon_logging
@@ -163,9 +172,7 @@ def imessage_daemon(
             ) as cur:
                 rows = [r["id"] for r in await cur.fetchall()]
             if not rows:
-                raise click.UsageError(
-                    "no enabled imessage accounts in DB"
-                )
+                raise click.UsageError("no enabled imessage accounts in DB")
             await asyncio.gather(*(plugin.daemon(aid) for aid in rows))
 
     asyncio.run(_run())

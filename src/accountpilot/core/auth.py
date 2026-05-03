@@ -72,13 +72,13 @@ class Secrets:
         - anything else: return unchanged (treated as a literal credential).
         """
         if uri.startswith(_OAUTH_GOOGLE):
-            account_id = int(uri[len(_OAUTH_GOOGLE):])
+            account_id = int(uri[len(_OAUTH_GOOGLE) :])
             return self._google_handler.access_token(account_id=account_id)
         if uri.startswith(_OAUTH_MICROSOFT):
-            account_id = int(uri[len(_OAUTH_MICROSOFT):])
+            account_id = int(uri[len(_OAUTH_MICROSOFT) :])
             return self._microsoft_handler.access_token(account_id=account_id)
         if uri.startswith(_CMD_SCHEME):
-            return self._resolve_password_cmd(uri[len(_CMD_SCHEME):])
+            return self._resolve_password_cmd(uri[len(_CMD_SCHEME) :])
         return uri
 
     @staticmethod

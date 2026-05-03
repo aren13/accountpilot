@@ -63,6 +63,7 @@ def people_list(db_path: Path, owners: bool) -> None:
             full = f"{r['name']} {r['surname'] or ''}".strip()
             owner = "*" if r["is_owner"] else " "
             click.echo(f"#{r['id']} {owner} {full:<30} {r['idents'] or ''}")
+
     asyncio.run(_run())
 
 
@@ -91,6 +92,7 @@ def people_show(person_id: int, db_path: Path) -> None:
             for i in idents:
                 star = " *" if i["is_primary"] else ""
                 click.echo(f"  - {i['kind']}: {i['value']}{star}")
+
     asyncio.run(_run())
 
 
@@ -106,6 +108,7 @@ def people_promote(person_id: int, db_path: Path) -> None:
             )
             await db.commit()
         click.echo(f"promoted #{person_id} to owner")
+
     asyncio.run(_run())
 
 
@@ -121,6 +124,7 @@ def people_demote(person_id: int, db_path: Path) -> None:
             )
             await db.commit()
         click.echo(f"demoted #{person_id} from owner")
+
     asyncio.run(_run())
 
 
@@ -133,4 +137,5 @@ def people_merge(keep_id: int, discard_id: int, db_path: Path) -> None:
         async with open_db(db_path) as db:
             await merge_people(db, keep_id=keep_id, discard_id=discard_id)
         click.echo(f"merged #{discard_id} into #{keep_id}")
+
     asyncio.run(_run())

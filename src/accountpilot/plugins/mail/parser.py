@@ -67,9 +67,7 @@ def parse_rfc822_to_email_message(
     """
     # Use compat32 policy to preserve raw header strings (e.g. quoted display
     # names like "Foo Bar" <foo@example.com> are not normalised away).
-    parsed: StdlibMessage = email.message_from_bytes(
-        raw_bytes, policy=policy.compat32
-    )
+    parsed: StdlibMessage = email.message_from_bytes(raw_bytes, policy=policy.compat32)
 
     external_id = (parsed.get("Message-ID") or "").strip() or f"uid-{imap_uid}"
     sent_at = _parse_date(parsed.get("Date"))
@@ -139,9 +137,7 @@ def _split_message_id_list(raw: object) -> list[str]:
     if raw is None:
         return []
     return [
-        tok
-        for tok in str(raw).split()
-        if tok.startswith("<") and tok.endswith(">")
+        tok for tok in str(raw).split() if tok.startswith("<") and tok.endswith(">")
     ]
 
 
@@ -161,11 +157,13 @@ def _walk_parts(
 
         if "attachment" in disposition or part.get_filename():
             raw_payload = cast("bytes", part.get_payload(decode=True) or b"")
-            attachments.append(AttachmentBlob(
-                filename=part.get_filename() or "attachment.bin",
-                content=raw_payload,
-                mime_type=ctype,
-            ))
+            attachments.append(
+                AttachmentBlob(
+                    filename=part.get_filename() or "attachment.bin",
+                    content=raw_payload,
+                    mime_type=ctype,
+                )
+            )
             continue
 
         charset = part.get_content_charset() or "utf-8"

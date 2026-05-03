@@ -29,6 +29,7 @@ async def test_watcher_fires_on_chat_db_modification(tmp_path: Path) -> None:
         # Modify in a separate thread to avoid blocking on the watcher.
         def _touch() -> None:
             chat_db.write_bytes(b"changed")
+
         threading.Timer(0.05, _touch).start()
         await asyncio.wait_for(fired.wait(), timeout=2.0)
     finally:
@@ -100,7 +101,9 @@ def test_chatdb_watcher_restarts_observer_on_inode_change(
         # unlink+rewrite).
         fake_inode = (original_inode or 0) + 12345
         monkeypatch.setattr(
-            watcher, "_stat_inode", lambda: fake_inode,
+            watcher,
+            "_stat_inode",
+            lambda: fake_inode,
         )
 
         # Trigger the inode check directly.

@@ -122,7 +122,7 @@ class ChatDbReader:
                 if row["date_read_ns"]
                 else None
             )
-            svc_raw = (row["service"] or "iMessage")
+            svc_raw = row["service"] or "iMessage"
             service: IMessageService = (
                 "iMessage" if svc_raw in {"iMessage", "RCS"} else "SMS"
             )
@@ -145,6 +145,8 @@ class ChatDbReader:
                 is_read=bool(row["is_read"]),
                 date_read=date_read,
                 attachments=load_attachments_for_message(
-                    conn, row["msg_rowid"], self.attachment_reader,
+                    conn,
+                    row["msg_rowid"],
+                    self.attachment_reader,
                 ),
             )

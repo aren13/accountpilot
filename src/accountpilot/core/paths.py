@@ -28,6 +28,7 @@ for tests and advanced users:
 These are intentionally not coupled to ``Path.home()``; CI runners,
 Linux distros, and packagers may map them anywhere.
 """
+
 from __future__ import annotations
 
 import os

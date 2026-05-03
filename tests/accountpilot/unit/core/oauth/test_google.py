@@ -12,16 +12,21 @@ if TYPE_CHECKING:
 
 
 def test_google_oauth_handler_returns_fresh_access_token(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     secret_dir = tmp_path / "oauth" / "google"
     secret_dir.mkdir(parents=True)
-    (secret_dir / "1.json").write_text(json.dumps({
-        "refresh_token": "rt-abc",
-        "client_id": "ci",
-        "client_secret": "cs",
-        "token_uri": "https://oauth2.googleapis.com/token",
-    }))
+    (secret_dir / "1.json").write_text(
+        json.dumps(
+            {
+                "refresh_token": "rt-abc",
+                "client_id": "ci",
+                "client_secret": "cs",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        )
+    )
     handler = GoogleOAuthHandler(tmp_path)
     monkeypatch.setattr(
         handler,
@@ -32,14 +37,21 @@ def test_google_oauth_handler_returns_fresh_access_token(
 
 
 def test_google_oauth_handler_caches_token_until_near_expiry(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     secret_dir = tmp_path / "oauth" / "google"
     secret_dir.mkdir(parents=True)
-    (secret_dir / "1.json").write_text(json.dumps({
-        "refresh_token": "rt", "client_id": "ci",
-        "client_secret": "cs", "token_uri": "u",
-    }))
+    (secret_dir / "1.json").write_text(
+        json.dumps(
+            {
+                "refresh_token": "rt",
+                "client_id": "ci",
+                "client_secret": "cs",
+                "token_uri": "u",
+            }
+        )
+    )
     handler = GoogleOAuthHandler(tmp_path)
 
     calls = {"n": 0}
@@ -56,14 +68,21 @@ def test_google_oauth_handler_caches_token_until_near_expiry(
 
 
 def test_google_oauth_handler_refreshes_when_within_60s_of_expiry(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     secret_dir = tmp_path / "oauth" / "google"
     secret_dir.mkdir(parents=True)
-    (secret_dir / "1.json").write_text(json.dumps({
-        "refresh_token": "rt", "client_id": "ci",
-        "client_secret": "cs", "token_uri": "u",
-    }))
+    (secret_dir / "1.json").write_text(
+        json.dumps(
+            {
+                "refresh_token": "rt",
+                "client_id": "ci",
+                "client_secret": "cs",
+                "token_uri": "u",
+            }
+        )
+    )
     handler = GoogleOAuthHandler(tmp_path)
 
     calls = {"n": 0}

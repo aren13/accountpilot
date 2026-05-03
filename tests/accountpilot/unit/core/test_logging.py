@@ -17,7 +17,8 @@ def test_configure_daemon_logging_installs_file_handler(tmp_path: Path) -> None:
         assert root.level <= logging.INFO
         # The RotatingFileHandler should write to log_dir.
         file_handlers = [
-            h for h in root.handlers
+            h
+            for h in root.handlers
             if isinstance(h, logging.handlers.RotatingFileHandler)  # type: ignore[attr-defined]
         ]
         assert len(file_handlers) >= 1
@@ -52,7 +53,8 @@ def test_configure_daemon_logging_creates_log_dir_if_missing(
 
 
 def test_configure_daemon_logging_routes_warnings_to_stderr(
-    tmp_path: Path, capsys,
+    tmp_path: Path,
+    capsys,
 ) -> None:
     """WARNING+ messages should reach stderr (which launchd redirects to
     .stderr.log)."""

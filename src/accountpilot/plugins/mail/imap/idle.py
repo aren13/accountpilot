@@ -107,8 +107,7 @@ class IdleListener:
                 if not self._running:
                     break
                 logger.warning(
-                    "IDLE connection error for %s/%s: %s — "
-                    "retrying in %ds",
+                    "IDLE connection error for %s/%s: %s — retrying in %ds",
                     self._account.name,
                     self._folder,
                     exc,
@@ -171,9 +170,7 @@ class IdleListener:
         while self._running:
             conn = self._imap._connections.get(self._folder)
             if conn is None:
-                raise ImapConnectionError(
-                    f"No connection for {self._folder}"
-                )
+                raise ImapConnectionError(f"No connection for {self._folder}")
 
             idle_timeout = self._config.idle_timeout
             logger.debug(
@@ -184,9 +181,7 @@ class IdleListener:
             )
 
             idle_fut = await conn.idle_start(timeout=idle_timeout)
-            notification = await asyncio.wait_for(
-                idle_fut, timeout=idle_timeout + 30
-            )
+            notification = await asyncio.wait_for(idle_fut, timeout=idle_timeout + 30)
 
             # Break out of IDLE
             conn.idle_done()

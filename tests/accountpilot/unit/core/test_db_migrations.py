@@ -104,8 +104,15 @@ async def test_001_init_people_columns(tmp_db_path: Path) -> None:
     async with aiosqlite.connect(tmp_db_path) as db:
         await apply_migrations(db, PROJECT_MIGRATIONS_DIR)
         cols = await _columns(db, "people")
-    assert {"id", "name", "surname", "is_owner", "notes",
-            "created_at", "updated_at"} <= set(cols)
+    assert {
+        "id",
+        "name",
+        "surname",
+        "is_owner",
+        "notes",
+        "created_at",
+        "updated_at",
+    } <= set(cols)
 
 
 async def test_001_init_unique_identifier(tmp_db_path: Path) -> None:

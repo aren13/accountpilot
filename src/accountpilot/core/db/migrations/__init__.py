@@ -47,9 +47,7 @@ async def current_version(db: aiosqlite.Connection) -> int:
     return int(row[0]) if row and row[0] is not None else 0
 
 
-async def apply_migrations(
-    db: aiosqlite.Connection, migrations_dir: Path
-) -> list[int]:
+async def apply_migrations(db: aiosqlite.Connection, migrations_dir: Path) -> list[int]:
     """Apply all migrations in `migrations_dir` newer than `current_version(db)`.
 
     Returns the list of versions newly applied (empty if up-to-date).

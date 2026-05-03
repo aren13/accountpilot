@@ -27,11 +27,18 @@ def test_imessage_sync_with_missing_config_errors_cleanly(
 ) -> None:
     runner = CliRunner()
     missing_cfg = tmp_db_path.parent / "no-such-config.yaml"
-    result = runner.invoke(cli, [
-        "imessage", "sync", "1",
-        "--db-path", str(tmp_db_path),
-        "--config", str(missing_cfg),
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "imessage",
+            "sync",
+            "1",
+            "--db-path",
+            str(tmp_db_path),
+            "--config",
+            str(missing_cfg),
+        ],
+    )
     assert result.exit_code != 0
 
 
@@ -91,7 +98,9 @@ plugins:
 
 
 def test_imessage_daemon_with_account_id_only_supervises_that_one(
-    tmp_db_path: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_db_path: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """When --account-id N is passed, the daemon supervises only N,
     even if other accounts are enabled in the DB."""
@@ -116,10 +125,14 @@ def test_imessage_daemon_with_account_id_only_supervises_that_one(
     result = runner.invoke(
         cli,
         [
-            "imessage", "daemon",
-            "--account-id", "1",
-            "--db-path", str(tmp_db_path),
-            "--config", str(cfg_path),
+            "imessage",
+            "daemon",
+            "--account-id",
+            "1",
+            "--db-path",
+            str(tmp_db_path),
+            "--config",
+            str(cfg_path),
         ],
     )
     assert result.exit_code == 0, result.output
@@ -127,7 +140,9 @@ def test_imessage_daemon_with_account_id_only_supervises_that_one(
 
 
 def test_imessage_daemon_without_account_id_supervises_all_enabled(
-    tmp_db_path: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_db_path: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """When no --account-id, daemon supervises every enabled imessage account."""
     _seed_two_imessage_accounts(tmp_db_path)
@@ -151,9 +166,12 @@ def test_imessage_daemon_without_account_id_supervises_all_enabled(
     result = runner.invoke(
         cli,
         [
-            "imessage", "daemon",
-            "--db-path", str(tmp_db_path),
-            "--config", str(cfg_path),
+            "imessage",
+            "daemon",
+            "--db-path",
+            str(tmp_db_path),
+            "--config",
+            str(cfg_path),
         ],
     )
     assert result.exit_code == 0, result.output

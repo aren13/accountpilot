@@ -127,14 +127,11 @@ class ImapClient:
                     self._account.email, imap_cfg.auth.password
                 )
             else:
-                response = await conn.login(
-                    self._account.email, imap_cfg.auth.password
-                )
+                response = await conn.login(self._account.email, imap_cfg.auth.password)
 
             if response.result != "OK":
                 raise AuthenticationError(
-                    f"Login failed for {self._account.email}: "
-                    f"{response.lines}"
+                    f"Login failed for {self._account.email}: {response.lines}"
                 )
         except AuthenticationError:
             raise
@@ -146,9 +143,7 @@ class ImapClient:
         resolved = self._provider.folder_alias(folder)
         response = await conn.select(resolved)
         if response.result != "OK":
-            raise ImapError(
-                f"SELECT {resolved} failed: {response.lines}"
-            )
+            raise ImapError(f"SELECT {resolved} failed: {response.lines}")
 
         self._connections[folder] = conn
         logger.info(
@@ -305,9 +300,7 @@ class ImapClient:
         conn = await self._get_conn(folder)
         response = await conn.uid("fetch", str(uid), "(FLAGS)")
         if response.result != "OK":
-            raise ImapError(
-                f"FETCH FLAGS failed for UID {uid}: {response.lines}"
-            )
+            raise ImapError(f"FETCH FLAGS failed for UID {uid}: {response.lines}")
         flags: list[str] = []
         for line in response.lines:
             if isinstance(line, str):
@@ -332,13 +325,9 @@ class ImapClient:
         """
         conn = await self._get_conn(folder)
         flag_str = " ".join(flags)
-        response = await conn.uid(
-            "store", _uid_set(uids), f"+FLAGS ({flag_str})"
-        )
+        response = await conn.uid("store", _uid_set(uids), f"+FLAGS ({flag_str})")
         if response.result != "OK":
-            raise ImapError(
-                f"STORE +FLAGS failed: {response.lines}"
-            )
+            raise ImapError(f"STORE +FLAGS failed: {response.lines}")
 
     async def remove_flags(
         self,
@@ -355,13 +344,9 @@ class ImapClient:
         """
         conn = await self._get_conn(folder)
         flag_str = " ".join(flags)
-        response = await conn.uid(
-            "store", _uid_set(uids), f"-FLAGS ({flag_str})"
-        )
+        response = await conn.uid("store", _uid_set(uids), f"-FLAGS ({flag_str})")
         if response.result != "OK":
-            raise ImapError(
-                f"STORE -FLAGS failed: {response.lines}"
-            )
+            raise ImapError(f"STORE -FLAGS failed: {response.lines}")
 
     async def move_messages(
         self,
@@ -457,33 +442,23 @@ class ImapClient:
         conn = await self._get_conn(folder)
         resolved = self._provider.folder_alias(folder)
         flag_str = f"({' '.join(flags)})" if flags else "()"
-        response = await conn.append(
-            resolved, flag_str, None, message
-        )
+        response = await conn.append(resolved, flag_str, None, message)
         if response.result != "OK":
-            raise ImapError(
-                f"APPEND to {resolved} failed: {response.lines}"
-            )
+            raise ImapError(f"APPEND to {resolved} failed: {response.lines}")
 
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
 
-    async def _get_conn(
-        self, folder: str
-    ) -> IMAP4 | IMAP4_SSL:
+    async def _get_conn(self, folder: str) -> IMAP4 | IMAP4_SSL:
         """Return the connection for *folder*, ensuring it is alive."""
         await self.ensure_connected(folder)
         conn = self._connections.get(folder)
         if conn is None:
-            raise ConnectionError(
-                f"No connection available for folder {folder}"
-            )
+            raise ConnectionError(f"No connection available for folder {folder}")
         return conn
 
-    async def _fetch_part(
-        self, folder: str, uid: int, part: str
-    ) -> bytes:
+    async def _fetch_part(self, folder: str, uid: int, part: str) -> bytes:
         """Fetch a single message *part* by UID.
 
         aioimaplib FETCH returns ``response.lines`` shaped like::
@@ -502,9 +477,7 @@ class ImapClient:
         conn = await self._get_conn(folder)
         response = await conn.uid("fetch", str(uid), f"({part})")
         if response.result != "OK":
-            raise ImapError(
-                f"FETCH {part} failed for UID {uid}: {response.lines}"
-            )
+            raise ImapError(f"FETCH {part} failed for UID {uid}: {response.lines}")
         for i, line in enumerate(response.lines):
             if not isinstance(line, (bytes, bytearray)):
                 continue
@@ -513,9 +486,7 @@ class ImapClient:
                 payload = response.lines[i + 1]
                 if isinstance(payload, (bytes, bytearray)):
                     return bytes(payload)
-        raise ImapError(
-            f"No data in FETCH {part} response for UID {uid}"
-        )
+        raise ImapError(f"No data in FETCH {part} response for UID {uid}")
 
     async def _safe_logout(
         self,
@@ -526,9 +497,7 @@ class ImapClient:
         try:
             await conn.logout()
         except Exception:
-            logger.debug(
-                "Logout error for folder %s (ignored)", folder
-            )
+            logger.debug("Logout error for folder %s (ignored)", folder)
 
     @property
     def provider(self) -> Provider:
@@ -541,9 +510,7 @@ class ImapClient:
 
 def _is_alive(conn: IMAP4 | IMAP4_SSL) -> bool:
     """Best-effort check whether *conn* still has an open transport."""
-    protocol: IMAP4ClientProtocol | None = getattr(
-        conn, "protocol", None
-    )
+    protocol: IMAP4ClientProtocol | None = getattr(conn, "protocol", None)
     if protocol is None:
         return False
     transport = protocol.transport

@@ -99,8 +99,13 @@ def insert_handle(db: Path, *, identifier: str) -> int:
     return rowid
 
 
-def insert_chat(db: Path, *, guid: str, identifier: str | None = None,
-                display_name: str | None = None) -> int:
+def insert_chat(
+    db: Path,
+    *,
+    guid: str,
+    identifier: str | None = None,
+    display_name: str | None = None,
+) -> int:
     conn = sqlite3.connect(db)
     cur = conn.execute(
         "INSERT INTO chat (guid, chat_identifier, display_name) VALUES (?, ?, ?)",
@@ -114,9 +119,16 @@ def insert_chat(db: Path, *, guid: str, identifier: str | None = None,
 
 
 def insert_message(
-    db: Path, *, guid: str, text: str | None, handle_rowid: int,
-    chat_rowid: int, sent_at: datetime, is_from_me: bool = False,
-    is_read: bool = True, service: str = "iMessage",
+    db: Path,
+    *,
+    guid: str,
+    text: str | None,
+    handle_rowid: int,
+    chat_rowid: int,
+    sent_at: datetime,
+    is_from_me: bool = False,
+    is_read: bool = True,
+    service: str = "iMessage",
     attributed_body: bytes | None = None,
 ) -> int:
     """Insert a message and link it to a chat. Returns message ROWID."""
@@ -126,10 +138,16 @@ def insert_message(
         "(guid, text, attributedBody, handle_id, service, date, "
         " is_from_me, is_read) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (guid, text, attributed_body, handle_rowid, service,
-         to_apple_ns(sent_at),
-         1 if is_from_me else 0,
-         1 if is_read else 0),
+        (
+            guid,
+            text,
+            attributed_body,
+            handle_rowid,
+            service,
+            to_apple_ns(sent_at),
+            1 if is_from_me else 0,
+            1 if is_read else 0,
+        ),
     )
     msg_rowid = cur.lastrowid
     conn.execute(
@@ -153,8 +171,13 @@ def add_chat_participant(db: Path, *, chat_rowid: int, handle_rowid: int) -> Non
 
 
 def insert_attachment(
-    db: Path, *, message_rowid: int, guid: str, filename: str | None,
-    mime_type: str | None = None, transfer_name: str | None = None,
+    db: Path,
+    *,
+    message_rowid: int,
+    guid: str,
+    filename: str | None,
+    mime_type: str | None = None,
+    transfer_name: str | None = None,
 ) -> int:
     conn = sqlite3.connect(db)
     cur = conn.execute(
@@ -164,8 +187,7 @@ def insert_attachment(
     )
     att_rowid = cur.lastrowid
     conn.execute(
-        "INSERT INTO message_attachment_join (message_id, attachment_id) "
-        "VALUES (?, ?)",
+        "INSERT INTO message_attachment_join (message_id, attachment_id) VALUES (?, ?)",
         (message_rowid, att_rowid),
     )
     conn.commit()

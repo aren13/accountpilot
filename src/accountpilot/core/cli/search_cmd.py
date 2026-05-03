@@ -54,8 +54,10 @@ def search_cmd(query: str, limit: int, db_path: Path) -> None:
     """Full-text search over messages."""
 
     async def _run() -> None:
-        async with open_db(db_path) as db, db.execute(
-            """
+        async with (
+            open_db(db_path) as db,
+            db.execute(
+                """
             SELECT m.id, m.source, m.sent_at, COALESCE(ed.subject, '') AS subject,
                    SUBSTR(m.body_text, 1, 80) AS snippet
             FROM messages m
@@ -65,8 +67,9 @@ def search_cmd(query: str, limit: int, db_path: Path) -> None:
             ORDER BY m.sent_at DESC
             LIMIT ?
             """,
-            (query, limit),
-        ) as cur:
+                (query, limit),
+            ) as cur,
+        ):
             rows = await cur.fetchall()
         if not rows:
             click.echo("no matches.")

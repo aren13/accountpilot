@@ -80,14 +80,12 @@ def load_attachments_for_message(
         except (FileNotFoundError, IsADirectoryError, PermissionError) as exc:
             log.debug("attachment %r missing/unreadable: %s", raw_path, exc)
             continue
-        filename = (
-            row["transfer_name"]
-            or Path(raw_path).name
-            or "attachment.bin"
+        filename = row["transfer_name"] or Path(raw_path).name or "attachment.bin"
+        blobs.append(
+            AttachmentBlob(
+                filename=filename,
+                content=content,
+                mime_type=row["mime_type"],
+            )
         )
-        blobs.append(AttachmentBlob(
-            filename=filename,
-            content=content,
-            mime_type=row["mime_type"],
-        ))
     return blobs

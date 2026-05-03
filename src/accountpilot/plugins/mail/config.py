@@ -49,5 +49,5 @@ class MailAccountConfig(_StrictBase):
 
 class MailPluginConfig(_StrictBase):
     accounts: list[MailAccountConfig] = Field(default_factory=list)
-    idle_timeout_seconds: int = 1740   # ~29 min; IMAP RFC requires <30
-    batch_size: int = 100              # how many UIDs to fetch per chunk
+    idle_timeout_seconds: int = 1740  # ~29 min; IMAP RFC requires <30
+    batch_size: int = 100  # how many UIDs to fetch per chunk

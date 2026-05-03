@@ -47,12 +47,15 @@ def _db_option(f: Any) -> Any:
 @_db_option
 def accounts_list(db_path: Path) -> None:
     async def _run() -> None:
-        async with open_db(db_path) as db, db.execute(
-            "SELECT a.id, a.source, a.account_identifier, a.enabled, "
-            "p.name || COALESCE(' ' || p.surname, '') AS owner_name "
-            "FROM accounts a JOIN people p ON p.id=a.owner_id "
-            "ORDER BY a.id"
-        ) as cur:
+        async with (
+            open_db(db_path) as db,
+            db.execute(
+                "SELECT a.id, a.source, a.account_identifier, a.enabled, "
+                "p.name || COALESCE(' ' || p.surname, '') AS owner_name "
+                "FROM accounts a JOIN people p ON p.id=a.owner_id "
+                "ORDER BY a.id"
+            ) as cur,
+        ):
             rows = await cur.fetchall()
         for r in rows:
             state = "[on]" if r["enabled"] else "[off]"
@@ -60,6 +63,7 @@ def accounts_list(db_path: Path) -> None:
                 f"#{r['id']} {state} {r['source']:<10}  {r['account_identifier']:<30} "
                 f"owner={r['owner_name']!r}"
             )
+
     asyncio.run(_run())
 
 
@@ -75,6 +79,7 @@ def accounts_disable(account_id: int, db_path: Path) -> None:
             )
             await db.commit()
         click.echo(f"disabled account #{account_id}")
+
     asyncio.run(_run())
 
 
@@ -91,13 +96,12 @@ def accounts_delete(account_id: int, force: bool, db_path: Path) -> None:
 
     async def _run() -> None:
         async with open_db(db_path) as db:
-            await db.execute(
-                "DELETE FROM messages WHERE account_id=?", (account_id,)
-            )
+            await db.execute("DELETE FROM messages WHERE account_id=?", (account_id,))
             await db.execute(
                 "DELETE FROM sync_status WHERE account_id=?", (account_id,)
             )
             await db.execute("DELETE FROM accounts WHERE id=?", (account_id,))
             await db.commit()
         click.echo(f"deleted account #{account_id}")
+
     asyncio.run(_run())

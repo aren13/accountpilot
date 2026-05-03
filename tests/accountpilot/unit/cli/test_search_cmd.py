@@ -34,16 +34,31 @@ def _seed_one_email(db_path: Path) -> None:
             )
             await db.commit()
             storage = Storage(db, CASStore(db_path.parent / "attachments"))
-            await storage.save_email(EmailMessage(
-                account_id=1, external_id="m1",
-                sent_at=datetime(2026, 5, 1, tzinfo=UTC), received_at=None,
-                direction="inbound", from_address="z@z",
-                to_addresses=[], cc_addresses=[], bcc_addresses=[],
-                subject="Project update", body_text="lorem ipsum",
-                body_html=None, in_reply_to=None, references=[],
-                imap_uid=1, mailbox="INBOX", gmail_thread_id=None,
-                labels=[], raw_headers={}, attachments=[],
-            ))
+            await storage.save_email(
+                EmailMessage(
+                    account_id=1,
+                    external_id="m1",
+                    sent_at=datetime(2026, 5, 1, tzinfo=UTC),
+                    received_at=None,
+                    direction="inbound",
+                    from_address="z@z",
+                    to_addresses=[],
+                    cc_addresses=[],
+                    bcc_addresses=[],
+                    subject="Project update",
+                    body_text="lorem ipsum",
+                    body_html=None,
+                    in_reply_to=None,
+                    references=[],
+                    imap_uid=1,
+                    mailbox="INBOX",
+                    gmail_thread_id=None,
+                    labels=[],
+                    raw_headers={},
+                    attachments=[],
+                )
+            )
+
     asyncio.run(_run())
 
 

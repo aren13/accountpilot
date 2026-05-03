@@ -72,9 +72,7 @@ def _build_app(
     return app
 
 
-def _save_cache(
-    app: msal.PublicClientApplication, cache_path: Path
-) -> None:
+def _save_cache(app: msal.PublicClientApplication, cache_path: Path) -> None:
     """Persist the MSAL token cache to disk if it changed."""
     cache = app.token_cache
     if isinstance(cache, msal.SerializableTokenCache) and cache.has_state_changed:
@@ -112,9 +110,7 @@ def acquire_token_interactive(
 
     flow = app.initiate_device_flow(scopes=scopes)
     if "user_code" not in flow:
-        raise RuntimeError(
-            f"Device code flow failed: {json.dumps(flow, indent=2)}"
-        )
+        raise RuntimeError(f"Device code flow failed: {json.dumps(flow, indent=2)}")
 
     # Print the authorization message for the user.
     print(flow["message"])

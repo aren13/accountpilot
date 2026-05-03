@@ -31,7 +31,7 @@ def normalize_email(raw: str) -> str:
     """Lowercase, strip whitespace, drop a `mailto:` prefix."""
     s = raw.strip()
     if s.lower().startswith("mailto:"):
-        s = s[len("mailto:"):]
+        s = s[len("mailto:") :]
     return s.strip().lower()
 
 
@@ -170,9 +170,7 @@ async def merge_people(
             "SELECT message_id, ?, role FROM message_people WHERE person_id=?",
             (keep_id, discard_id),
         )
-        await db.execute(
-            "DELETE FROM message_people WHERE person_id=?", (discard_id,)
-        )
+        await db.execute("DELETE FROM message_people WHERE person_id=?", (discard_id,))
         await db.execute("DELETE FROM people WHERE id=?", (discard_id,))
         await db.execute("COMMIT")
     except Exception:

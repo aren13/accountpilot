@@ -23,6 +23,7 @@ def _seed_two_people(db_path: Path) -> tuple[int, int]:
                 db, kind="email", value="b@x.com", default_name="B"
             )
             return a, b
+
     return asyncio.run(_run())
 
 
@@ -63,15 +64,22 @@ def test_promote_demote_flips_owner_flag(tmp_db_path: Path) -> None:
 def test_merge_repoints_and_deletes(tmp_db_path: Path) -> None:
     a, b = _seed_two_people(tmp_db_path)
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "people", "merge", "--keep", str(a), "--discard", str(b),
-        "--db-path", str(tmp_db_path),
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "people",
+            "merge",
+            "--keep",
+            str(a),
+            "--discard",
+            str(b),
+            "--db-path",
+            str(tmp_db_path),
+        ],
+    )
     assert result.exit_code == 0
     out = runner.invoke(cli, ["people", "list", "--db-path", str(tmp_db_path)]).output
     assert "b@x.com" in out  # identifier survives
     # Show discarded id should fail.
-    show = runner.invoke(
-        cli, ["people", "show", str(b), "--db-path", str(tmp_db_path)]
-    )
+    show = runner.invoke(cli, ["people", "show", str(b), "--db-path", str(tmp_db_path)])
     assert "not found" in show.output.lower()

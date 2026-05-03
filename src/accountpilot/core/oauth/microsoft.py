@@ -70,9 +70,7 @@ class MicrosoftOAuthHandler:
                 f"{result.get('error')}: {result.get('error_description')}"
             )
         token = str(result["access_token"])
-        expires_at = datetime.now(UTC) + timedelta(
-            seconds=int(result["expires_in"])
-        )
+        expires_at = datetime.now(UTC) + timedelta(seconds=int(result["expires_in"]))
         self._cache[account_id] = (token, expires_at)
         return token
 
@@ -91,6 +89,7 @@ class MicrosoftOAuthHandler:
     ) -> dict[str, Any]:
         app = msal.PublicClientApplication(client_id, authority=authority)
         result: dict[str, Any] = app.acquire_token_by_refresh_token(
-            refresh_token, scopes=scopes,
+            refresh_token,
+            scopes=scopes,
         )
         return result

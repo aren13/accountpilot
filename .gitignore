@@ -33,3 +33,4 @@ Thumbs.db
 
 # MailPilot data (never commit user data)
 .mailpilot/
+.claude/

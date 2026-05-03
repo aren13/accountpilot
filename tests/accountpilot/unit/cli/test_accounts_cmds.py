@@ -26,6 +26,7 @@ def _seed(db_path: Path) -> int:
             await db.commit()
             assert cur.lastrowid is not None
             return cur.lastrowid
+
     return asyncio.run(_run())
 
 
@@ -40,34 +41,67 @@ def test_list_accounts(tmp_db_path: Path) -> None:
 def test_disable_account(tmp_db_path: Path) -> None:
     aid = _seed(tmp_db_path)
     runner = CliRunner()
-    runner.invoke(cli, [
-        "accounts", "disable", str(aid), "--db-path", str(tmp_db_path),
-    ])
-    out = runner.invoke(cli, [
-        "accounts", "list", "--db-path", str(tmp_db_path),
-    ]).output
+    runner.invoke(
+        cli,
+        [
+            "accounts",
+            "disable",
+            str(aid),
+            "--db-path",
+            str(tmp_db_path),
+        ],
+    )
+    out = runner.invoke(
+        cli,
+        [
+            "accounts",
+            "list",
+            "--db-path",
+            str(tmp_db_path),
+        ],
+    ).output
     assert "[off]" in out
 
 
 def test_delete_account_with_force(tmp_db_path: Path) -> None:
     aid = _seed(tmp_db_path)
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "accounts", "delete", str(aid), "--force",
-        "--db-path", str(tmp_db_path),
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "accounts",
+            "delete",
+            str(aid),
+            "--force",
+            "--db-path",
+            str(tmp_db_path),
+        ],
+    )
     assert result.exit_code == 0
-    out = runner.invoke(cli, [
-        "accounts", "list", "--db-path", str(tmp_db_path),
-    ]).output
+    out = runner.invoke(
+        cli,
+        [
+            "accounts",
+            "list",
+            "--db-path",
+            str(tmp_db_path),
+        ],
+    ).output
     assert "a@b.com" not in out
 
 
 def test_delete_without_force_aborts(tmp_db_path: Path) -> None:
     aid = _seed(tmp_db_path)
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "accounts", "delete", str(aid),
-        "--db-path", str(tmp_db_path),
-    ], input="n\n")
+    result = runner.invoke(
+        cli,
+        [
+            "accounts",
+            "delete",
+            str(aid),
+            "--db-path",
+            str(tmp_db_path),
+        ],
+        input="n\n",
+    )
     assert "aborted" in result.output.lower()

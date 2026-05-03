@@ -107,7 +107,9 @@ plugins:
 
 
 def test_mail_daemon_with_account_id_only_supervises_that_one(
-    tmp_db_path: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_db_path: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """When --account-id N is passed, the daemon supervises only N,
     even if other accounts are enabled in the DB."""
@@ -130,10 +132,14 @@ def test_mail_daemon_with_account_id_only_supervises_that_one(
     result = runner.invoke(
         cli,
         [
-            "mail", "daemon",
-            "--account-id", "1",
-            "--db-path", str(tmp_db_path),
-            "--config", str(cfg_path),
+            "mail",
+            "daemon",
+            "--account-id",
+            "1",
+            "--db-path",
+            str(tmp_db_path),
+            "--config",
+            str(cfg_path),
         ],
     )
     assert result.exit_code == 0, result.output
@@ -141,7 +147,9 @@ def test_mail_daemon_with_account_id_only_supervises_that_one(
 
 
 def test_mail_daemon_without_account_id_supervises_all_enabled(
-    tmp_db_path: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_db_path: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """When no --account-id, daemon supervises every enabled gmail account."""
     _seed_two_gmail_accounts(tmp_db_path)
@@ -163,9 +171,12 @@ def test_mail_daemon_without_account_id_supervises_all_enabled(
     result = runner.invoke(
         cli,
         [
-            "mail", "daemon",
-            "--db-path", str(tmp_db_path),
-            "--config", str(cfg_path),
+            "mail",
+            "daemon",
+            "--db-path",
+            str(tmp_db_path),
+            "--config",
+            str(cfg_path),
         ],
     )
     assert result.exit_code == 0, result.output

@@ -69,9 +69,7 @@ async def _opened_plugin(
     cfg = load_config(config_path)
     mail_cfg_raw = cfg.plugins.get("mail")
     if mail_cfg_raw is None or not mail_cfg_raw.enabled:
-        raise click.UsageError(
-            f"no enabled `plugins.mail` section in {config_path}"
-        )
+        raise click.UsageError(f"no enabled `plugins.mail` section in {config_path}")
     mail_cfg_dict: dict[str, Any] = {
         "accounts": [
             a.model_dump(exclude_none=True, exclude={"chat_db_path"})
@@ -82,9 +80,7 @@ async def _opened_plugin(
     cas = CASStore(db_path.parent / "attachments")
     async with open_db(db_path) as db:
         storage = Storage(db, cas)
-        plugin = MailPlugin(
-            config=mail_cfg_dict, storage=storage, secrets=Secrets({})
-        )
+        plugin = MailPlugin(config=mail_cfg_dict, storage=storage, secrets=Secrets({}))
         yield plugin, storage
 
 
@@ -134,7 +130,9 @@ def mail_sync(account_id: int, db_path: Path, config_path: Path) -> None:
 @_db_option
 @_config_option
 def mail_daemon(
-    account_id: int | None, db_path: Path, config_path: Path,
+    account_id: int | None,
+    db_path: Path,
+    config_path: Path,
 ) -> None:
     """Long-running daemon: polls enabled mail accounts (default all)."""
     from accountpilot.core.logging import configure_daemon_logging

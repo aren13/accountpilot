@@ -75,7 +75,10 @@ class GoogleOAuthHandler:
         return data
 
     def _post_token_endpoint(
-        self, *, token_uri: str, **kwargs: str,
+        self,
+        *,
+        token_uri: str,
+        **kwargs: str,
     ) -> dict[str, Any]:
         body = urllib.parse.urlencode(kwargs).encode()
         req = urllib.request.Request(token_uri, data=body, method="POST")  # noqa: S310

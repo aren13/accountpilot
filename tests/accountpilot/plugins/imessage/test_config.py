@@ -34,7 +34,7 @@ def test_account_rejects_extra_field() -> None:
         IMessageAccountConfig(
             identifier="+15551234567",
             owner="+15551234567",
-            something_unknown="oops",   # type: ignore[call-arg]
+            something_unknown="oops",  # type: ignore[call-arg]
         )
 
 

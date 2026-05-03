@@ -36,23 +36,27 @@ def test_setup_creates_owner_and_account(tmp_path: Path, tmp_db_path: Path) -> N
     cfg = tmp_path / "config.yaml"
     _write_config(cfg)
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "setup", "--config", str(cfg), "--db-path", str(tmp_db_path),
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "setup",
+            "--config",
+            str(cfg),
+            "--db-path",
+            str(tmp_db_path),
+        ],
+    )
     assert result.exit_code == 0, result.output
 
     async def _check() -> None:
         async with open_db(tmp_db_path) as db:
-            async with db.execute(
-                "SELECT name FROM people WHERE is_owner=1"
-            ) as cur:
+            async with db.execute("SELECT name FROM people WHERE is_owner=1") as cur:
                 rows = [r["name"] for r in await cur.fetchall()]
             assert "Aren" in rows
-            async with db.execute(
-                "SELECT account_identifier FROM accounts"
-            ) as cur:
+            async with db.execute("SELECT account_identifier FROM accounts") as cur:
                 rows = [r["account_identifier"] for r in await cur.fetchall()]
             assert "aren@x.com" in rows
+
     asyncio.run(_check())
 
 
@@ -60,24 +64,37 @@ def test_setup_idempotent(tmp_path: Path, tmp_db_path: Path) -> None:
     cfg = tmp_path / "config.yaml"
     _write_config(cfg)
     runner = CliRunner()
-    runner.invoke(cli, [
-        "setup", "--config", str(cfg), "--db-path", str(tmp_db_path),
-    ])
-    result = runner.invoke(cli, [
-        "setup", "--config", str(cfg), "--db-path", str(tmp_db_path),
-    ])
+    runner.invoke(
+        cli,
+        [
+            "setup",
+            "--config",
+            str(cfg),
+            "--db-path",
+            str(tmp_db_path),
+        ],
+    )
+    result = runner.invoke(
+        cli,
+        [
+            "setup",
+            "--config",
+            str(cfg),
+            "--db-path",
+            str(tmp_db_path),
+        ],
+    )
     assert result.exit_code == 0
 
     async def _check() -> None:
         async with open_db(tmp_db_path) as db:
-            async with db.execute(
-                "SELECT COUNT(*) AS c FROM accounts"
-            ) as cur:
+            async with db.execute("SELECT COUNT(*) AS c FROM accounts") as cur:
                 assert (await cur.fetchone())["c"] == 1  # type: ignore[index]
             async with db.execute(
                 "SELECT COUNT(*) AS c FROM people WHERE is_owner=1"
             ) as cur:
                 assert (await cur.fetchone())["c"] == 1  # type: ignore[index]
+
     asyncio.run(_check())
 
 
@@ -101,8 +118,15 @@ plugins:
         provider: gmail
 """)
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "setup", "--config", str(cfg), "--db-path", str(tmp_db_path),
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "setup",
+            "--config",
+            str(cfg),
+            "--db-path",
+            str(tmp_db_path),
+        ],
+    )
     assert result.exit_code != 0
     assert "owner" in result.output.lower()

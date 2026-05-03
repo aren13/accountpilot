@@ -35,6 +35,7 @@ from accountpilot.plugins.mail.imap.client import ImapClient
 @dataclass
 class _FakeAioImapResponse:
     """Stand-in for aioimaplib.Response."""
+
     result: str
     lines: list[bytes | bytearray | str]
 
@@ -50,7 +51,9 @@ class _FakeAioImapConn:
         self.responses[key] = response
 
     async def uid_search(
-        self, criteria: str, charset: str | None = "utf-8",
+        self,
+        criteria: str,
+        charset: str | None = "utf-8",
     ) -> _FakeAioImapResponse:
         self.calls.append(("uid_search", (criteria, charset)))
         return self.responses[("uid_search", criteria)]
@@ -71,12 +74,16 @@ def _build_client_with_conn(conn: _FakeAioImapConn) -> ImapClient:
         name="x",
         provider="gmail",
         imap=SimpleNamespace(
-            host="imap.gmail.com", port=993, encryption="tls",
+            host="imap.gmail.com",
+            port=993,
+            encryption="tls",
             auth=SimpleNamespace(method="password", password="pw"),
         ),
     )
     sync_cfg = SimpleNamespace(
-        idle_timeout=60, reconnect_base_delay=1, reconnect_max_delay=5,
+        idle_timeout=60,
+        reconnect_base_delay=1,
+        reconnect_max_delay=5,
     )
     client = ImapClient(account=account, sync_config=sync_cfg)
     client._provider = GmailProvider()
@@ -224,5 +231,6 @@ async def test_fetch_message_raises_on_non_ok_response() -> None:
     client = _build_client_with_conn(conn)
 
     from accountpilot.plugins.mail.imap import ImapError
+
     with pytest.raises(ImapError):
         await client.fetch_message("INBOX", 999)

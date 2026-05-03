@@ -30,7 +30,8 @@ def test_service_install_dry_run_renders_launchd_plist(
 
     runner = CliRunner()
     result = runner.invoke(
-        cli, ["service", "install", "mail", "--dry-run"],
+        cli,
+        ["service", "install", "mail", "--dry-run"],
     )
     assert result.exit_code == 0, result.output
     out = result.output
@@ -43,7 +44,8 @@ def test_service_install_dry_run_renders_launchd_plist(
 
 
 def test_service_install_writes_plist_and_bootstraps(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Real install path writes the plist into the LaunchAgents dir and
     calls launchctl bootstrap + enable + kickstart."""
@@ -51,7 +53,8 @@ def test_service_install_writes_plist_and_bootstraps(
     monkeypatch.setattr("shutil.which", lambda _: "/fake/bin/accountpilot")
     fake_la = tmp_path / "LaunchAgents"
     monkeypatch.setattr(
-        "accountpilot.core.cli.service_cmd._LAUNCHAGENTS", fake_la,
+        "accountpilot.core.cli.service_cmd._LAUNCHAGENTS",
+        fake_la,
     )
     monkeypatch.setenv("ACCOUNTPILOT_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("ACCOUNTPILOT_LOG_DIR", str(tmp_path / "logs"))
@@ -95,7 +98,8 @@ def test_service_install_errors_on_truly_unsupported_platform(
 
 
 def test_service_uninstall_removes_plist(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(platform, "system", lambda: "Darwin")
     fake_la = tmp_path / "LaunchAgents"
@@ -103,7 +107,8 @@ def test_service_uninstall_removes_plist(
     plist = fake_la / "com.accountpilot.mail.daemon.plist"
     plist.write_text("<dummy/>")
     monkeypatch.setattr(
-        "accountpilot.core.cli.service_cmd._LAUNCHAGENTS", fake_la,
+        "accountpilot.core.cli.service_cmd._LAUNCHAGENTS",
+        fake_la,
     )
 
     monkeypatch.setattr(
@@ -177,7 +182,8 @@ def test_service_install_dry_run_renders_systemd_unit(
 
 
 def test_service_install_writes_unit_and_calls_systemctl(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Real install on Linux writes the unit into XDG systemd/user/ and
     calls daemon-reload + enable --now."""
@@ -204,10 +210,7 @@ def test_service_install_writes_unit_and_calls_systemctl(
     runner = CliRunner()
     result = runner.invoke(cli, ["service", "install", "imessage"])
     assert result.exit_code == 0, result.output
-    unit = (
-        tmp_path / "config" / "systemd" / "user"
-        / "accountpilot-imessage.service"
-    )
+    unit = tmp_path / "config" / "systemd" / "user" / "accountpilot-imessage.service"
     assert unit.exists()
     content = unit.read_text()
     assert "AccountPilot imessage daemon" in content
@@ -222,7 +225,8 @@ def test_service_install_writes_unit_and_calls_systemctl(
 
 
 def test_service_uninstall_systemd_removes_unit(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(platform, "system", lambda: "Linux")
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))

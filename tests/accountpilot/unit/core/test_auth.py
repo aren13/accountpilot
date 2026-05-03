@@ -44,13 +44,13 @@ def test_resolve_password_cmd_propagates_nonzero_exit() -> None:
 
 
 def test_secrets_resolve_oauth_google_uri_dispatches_to_handler(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     secret_dir = tmp_path / "oauth" / "google"
     secret_dir.mkdir(parents=True)
     (secret_dir / "5.json").write_text(
-        '{"refresh_token":"rt","client_id":"ci",'
-        '"client_secret":"cs","token_uri":"u"}'
+        '{"refresh_token":"rt","client_id":"ci","client_secret":"cs","token_uri":"u"}'
     )
 
     s = Secrets({}, secrets_root=tmp_path)
@@ -63,7 +63,8 @@ def test_secrets_resolve_oauth_google_uri_dispatches_to_handler(
 
 
 def test_secrets_resolve_oauth_microsoft_uri_dispatches_to_handler(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     secret_dir = tmp_path / "oauth" / "microsoft"
     secret_dir.mkdir(parents=True)

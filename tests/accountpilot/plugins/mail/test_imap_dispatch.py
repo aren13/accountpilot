@@ -155,9 +155,7 @@ def _build_imap_client(auth_method: str, credential: str) -> Any:
 async def test_imap_connect_uses_xoauth2_when_auth_method_is_oauth2() -> None:
     """auth.method='oauth2' → conn.xoauth2(email, token), NOT conn.login."""
     client = _build_imap_client("oauth2", "fake-access-token")
-    with patch(
-        "accountpilot.plugins.mail.imap.client.IMAP4_SSL", _FakeIMAP4SSL
-    ):
+    with patch("accountpilot.plugins.mail.imap.client.IMAP4_SSL", _FakeIMAP4SSL):
         await client.connect("INBOX")
 
     fake = _FakeIMAP4SSL.last_instance
@@ -170,9 +168,7 @@ async def test_imap_connect_uses_xoauth2_when_auth_method_is_oauth2() -> None:
 async def test_imap_connect_uses_login_when_auth_method_is_password() -> None:
     """auth.method='password' → conn.login(email, password), NOT conn.xoauth2."""
     client = _build_imap_client("password", "plaintext-pw")
-    with patch(
-        "accountpilot.plugins.mail.imap.client.IMAP4_SSL", _FakeIMAP4SSL
-    ):
+    with patch("accountpilot.plugins.mail.imap.client.IMAP4_SSL", _FakeIMAP4SSL):
         await client.connect("INBOX")
 
     fake = _FakeIMAP4SSL.last_instance

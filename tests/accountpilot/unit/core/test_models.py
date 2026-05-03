@@ -49,12 +49,26 @@ def test_email_message_minimum_fields() -> None:
 def test_email_message_rejects_invalid_direction() -> None:
     with pytest.raises(ValidationError):
         EmailMessage(
-            account_id=1, external_id="x", sent_at=datetime.now(tz=timezone.utc),  # noqa: UP017
-            received_at=None, direction="sideways",  # type: ignore[arg-type]
-            from_address="a@b", to_addresses=[], cc_addresses=[],
-            bcc_addresses=[], subject="", body_text="", body_html=None,
-            in_reply_to=None, references=[], imap_uid=0, mailbox="",
-            gmail_thread_id=None, labels=[], raw_headers={}, attachments=[],
+            account_id=1,
+            external_id="x",
+            sent_at=datetime.now(tz=timezone.utc),  # noqa: UP017
+            received_at=None,
+            direction="sideways",  # type: ignore[arg-type]
+            from_address="a@b",
+            to_addresses=[],
+            cc_addresses=[],
+            bcc_addresses=[],
+            subject="",
+            body_text="",
+            body_html=None,
+            in_reply_to=None,
+            references=[],
+            imap_uid=0,
+            mailbox="",
+            gmail_thread_id=None,
+            labels=[],
+            raw_headers={},
+            attachments=[],
         )
 
 
@@ -93,39 +107,78 @@ def test_save_result_actions() -> None:
 def test_email_message_rejects_naive_datetime() -> None:
     with pytest.raises(ValidationError):
         EmailMessage(
-            account_id=1, external_id="x",
-            sent_at=datetime(2026, 5, 1, 12, 0),   # naive — should fail
-            received_at=None, direction="inbound",
-            from_address="a@b", to_addresses=[], cc_addresses=[],
-            bcc_addresses=[], subject="", body_text="", body_html=None,
-            in_reply_to=None, references=[], imap_uid=0, mailbox="",
-            gmail_thread_id=None, labels=[], raw_headers={}, attachments=[],
+            account_id=1,
+            external_id="x",
+            sent_at=datetime(2026, 5, 1, 12, 0),  # naive — should fail
+            received_at=None,
+            direction="inbound",
+            from_address="a@b",
+            to_addresses=[],
+            cc_addresses=[],
+            bcc_addresses=[],
+            subject="",
+            body_text="",
+            body_html=None,
+            in_reply_to=None,
+            references=[],
+            imap_uid=0,
+            mailbox="",
+            gmail_thread_id=None,
+            labels=[],
+            raw_headers={},
+            attachments=[],
         )
 
 
 def test_email_message_rejects_extra_fields() -> None:
     with pytest.raises(ValidationError):
         EmailMessage(
-            account_id=1, external_id="x",
+            account_id=1,
+            external_id="x",
             sent_at=datetime(2026, 5, 1, 12, 0, tzinfo=timezone.utc),  # noqa: UP017
-            received_at=None, direction="inbound",
-            from_address="a@b", to_addresses=[], cc_addresses=[],
-            bcc_addresses=[], subject="", body_text="", body_html=None,
-            in_reply_to=None, references=[], imap_uid=0, mailbox="",
-            gmail_thread_id=None, labels=[], raw_headers={}, attachments=[],
+            received_at=None,
+            direction="inbound",
+            from_address="a@b",
+            to_addresses=[],
+            cc_addresses=[],
+            bcc_addresses=[],
+            subject="",
+            body_text="",
+            body_html=None,
+            in_reply_to=None,
+            references=[],
+            imap_uid=0,
+            mailbox="",
+            gmail_thread_id=None,
+            labels=[],
+            raw_headers={},
+            attachments=[],
             bogus_field="oops",  # type: ignore[call-arg]
         )
 
 
 def test_email_message_is_frozen() -> None:
     msg = EmailMessage(
-        account_id=1, external_id="x",
+        account_id=1,
+        external_id="x",
         sent_at=datetime(2026, 5, 1, 12, 0, tzinfo=timezone.utc),  # noqa: UP017
-        received_at=None, direction="inbound",
-        from_address="a@b", to_addresses=[], cc_addresses=[],
-        bcc_addresses=[], subject="", body_text="", body_html=None,
-        in_reply_to=None, references=[], imap_uid=0, mailbox="",
-        gmail_thread_id=None, labels=[], raw_headers={}, attachments=[],
+        received_at=None,
+        direction="inbound",
+        from_address="a@b",
+        to_addresses=[],
+        cc_addresses=[],
+        bcc_addresses=[],
+        subject="",
+        body_text="",
+        body_html=None,
+        in_reply_to=None,
+        references=[],
+        imap_uid=0,
+        mailbox="",
+        gmail_thread_id=None,
+        labels=[],
+        raw_headers={},
+        attachments=[],
     )
     with pytest.raises(ValidationError):
         msg.subject = "mutated"

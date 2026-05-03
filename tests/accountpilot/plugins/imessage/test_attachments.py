@@ -25,21 +25,26 @@ def _seed_attachment_file(tmp_path: Path) -> Path:
     return p
 
 
-def test_load_attachments_reads_bytes(
-    chatdb_path: Path, tmp_path: Path
-) -> None:
+def test_load_attachments_reads_bytes(chatdb_path: Path, tmp_path: Path) -> None:
     h = insert_handle(chatdb_path, identifier="+1")
     chat = insert_chat(chatdb_path, guid="c1")
     from datetime import UTC, datetime
+
     msg_rowid = insert_message(
-        chatdb_path, guid="m-att-1", text="see pic",
-        handle_rowid=h, chat_rowid=chat,
+        chatdb_path,
+        guid="m-att-1",
+        text="see pic",
+        handle_rowid=h,
+        chat_rowid=chat,
         sent_at=datetime(2026, 5, 1, tzinfo=UTC),
     )
     att_path = _seed_attachment_file(tmp_path)
     insert_attachment(
-        chatdb_path, message_rowid=msg_rowid,
-        guid="att-1", filename=str(att_path), mime_type="image/jpeg",
+        chatdb_path,
+        message_rowid=msg_rowid,
+        guid="att-1",
+        filename=str(att_path),
+        mime_type="image/jpeg",
         transfer_name="pic.jpg",
     )
 
@@ -56,22 +61,25 @@ def test_load_attachments_reads_bytes(
     assert blobs[0].content == b"\xff\xd8\xffSAMPLE"
 
 
-def test_load_attachments_skips_missing_file(
-    chatdb_path: Path, tmp_path: Path
-) -> None:
+def test_load_attachments_skips_missing_file(chatdb_path: Path, tmp_path: Path) -> None:
     """If an attachment row references a path that no longer exists on
     disk, the loader skips it rather than raising. macOS sometimes
     purges old attachments while leaving chat.db rows behind."""
     h = insert_handle(chatdb_path, identifier="+1")
     chat = insert_chat(chatdb_path, guid="c1")
     from datetime import UTC, datetime
+
     msg_rowid = insert_message(
-        chatdb_path, guid="m-att-2", text="missing",
-        handle_rowid=h, chat_rowid=chat,
+        chatdb_path,
+        guid="m-att-2",
+        text="missing",
+        handle_rowid=h,
+        chat_rowid=chat,
         sent_at=datetime(2026, 5, 1, tzinfo=UTC),
     )
     insert_attachment(
-        chatdb_path, message_rowid=msg_rowid,
+        chatdb_path,
+        message_rowid=msg_rowid,
         guid="att-missing",
         filename=str(tmp_path / "ghost.bin"),  # never created
         mime_type="application/octet-stream",

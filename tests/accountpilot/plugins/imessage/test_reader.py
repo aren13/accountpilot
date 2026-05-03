@@ -21,12 +21,16 @@ from tests.accountpilot.plugins.imessage.test_attributed_body import (
 
 def test_read_messages_yields_imessage_models(chatdb_path: Path) -> None:
     melis = insert_handle(chatdb_path, identifier="+905052490140")
-    chat = insert_chat(chatdb_path, guid="iMessage;-;+905052490140",
-                       identifier="+905052490140")
+    chat = insert_chat(
+        chatdb_path, guid="iMessage;-;+905052490140", identifier="+905052490140"
+    )
     add_chat_participant(chatdb_path, chat_rowid=chat, handle_rowid=melis)
     insert_message(
-        chatdb_path, guid="GUID-1", text="hi from melis",
-        handle_rowid=melis, chat_rowid=chat,
+        chatdb_path,
+        guid="GUID-1",
+        text="hi from melis",
+        handle_rowid=melis,
+        chat_rowid=chat,
         sent_at=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
         is_from_me=False,
     )
@@ -51,8 +55,11 @@ def test_read_messages_outbound_marker(chatdb_path: Path) -> None:
     me = insert_handle(chatdb_path, identifier="+15551234567")
     chat = insert_chat(chatdb_path, guid="iMessage;-;+15551234567")
     insert_message(
-        chatdb_path, guid="GUID-OUT", text="reply",
-        handle_rowid=me, chat_rowid=chat,
+        chatdb_path,
+        guid="GUID-OUT",
+        text="reply",
+        handle_rowid=me,
+        chat_rowid=chat,
         sent_at=datetime(2026, 5, 1, 12, 5, tzinfo=UTC),
         is_from_me=True,
     )
@@ -69,12 +76,15 @@ def test_read_messages_since_filter(chatdb_path: Path) -> None:
     t1 = datetime(2026, 5, 1, 10, 0, tzinfo=UTC)
     t2 = datetime(2026, 5, 1, 11, 0, tzinfo=UTC)
     t3 = datetime(2026, 5, 1, 12, 0, tzinfo=UTC)
-    insert_message(chatdb_path, guid="m1", text="a", handle_rowid=h,
-                   chat_rowid=chat, sent_at=t1)
-    insert_message(chatdb_path, guid="m2", text="b", handle_rowid=h,
-                   chat_rowid=chat, sent_at=t2)
-    insert_message(chatdb_path, guid="m3", text="c", handle_rowid=h,
-                   chat_rowid=chat, sent_at=t3)
+    insert_message(
+        chatdb_path, guid="m1", text="a", handle_rowid=h, chat_rowid=chat, sent_at=t1
+    )
+    insert_message(
+        chatdb_path, guid="m2", text="b", handle_rowid=h, chat_rowid=chat, sent_at=t2
+    )
+    insert_message(
+        chatdb_path, guid="m3", text="c", handle_rowid=h, chat_rowid=chat, sent_at=t3
+    )
 
     reader = ChatDbReader(chatdb_path, account_id=1)
     msgs = list(reader.read_messages(since_ns=to_apple_ns(t1)))
@@ -94,9 +104,14 @@ def test_read_messages_group_chat_lists_participants(
     add_chat_participant(chatdb_path, chat_rowid=chat, handle_rowid=a)
     add_chat_participant(chatdb_path, chat_rowid=chat, handle_rowid=b)
     add_chat_participant(chatdb_path, chat_rowid=chat, handle_rowid=c)
-    insert_message(chatdb_path, guid="grp-1", text="hello group",
-                   handle_rowid=a, chat_rowid=chat,
-                   sent_at=datetime(2026, 5, 1, tzinfo=UTC))
+    insert_message(
+        chatdb_path,
+        guid="grp-1",
+        text="hello group",
+        handle_rowid=a,
+        chat_rowid=chat,
+        sent_at=datetime(2026, 5, 1, tzinfo=UTC),
+    )
 
     reader = ChatDbReader(chatdb_path, account_id=1)
     msg = list(reader.read_messages())[0]
@@ -109,9 +124,14 @@ def test_read_messages_null_text_yields_empty_body(chatdb_path: Path) -> None:
     rather than the literal string 'None'."""
     h = insert_handle(chatdb_path, identifier="+1")
     chat = insert_chat(chatdb_path, guid="c")
-    insert_message(chatdb_path, guid="m1", text=None, handle_rowid=h,
-                   chat_rowid=chat,
-                   sent_at=datetime(2026, 5, 1, tzinfo=UTC))
+    insert_message(
+        chatdb_path,
+        guid="m1",
+        text=None,
+        handle_rowid=h,
+        chat_rowid=chat,
+        sent_at=datetime(2026, 5, 1, tzinfo=UTC),
+    )
 
     reader = ChatDbReader(chatdb_path, account_id=1)
     msg = list(reader.read_messages())[0]

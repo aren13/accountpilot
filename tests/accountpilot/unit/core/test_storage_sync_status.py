@@ -14,11 +14,14 @@ from accountpilot.core.storage import Storage
 
 async def _seed_account(storage: Storage) -> int:
     owner = await storage.upsert_owner(
-        name="Aren", surname=None,
+        name="Aren",
+        surname=None,
         identifiers=[Identifier(kind="email", value="a@b.com")],
     )
     return await storage.upsert_account(
-        source="gmail", identifier="a@b.com", owner_id=owner,
+        source="gmail",
+        identifier="a@b.com",
+        owner_id=owner,
     )
 
 
@@ -76,7 +79,9 @@ async def test_update_sync_status_error_does_not_clear_last_success(
         success_ts = (await cur.fetchone())["last_success_at"]
 
     await storage.update_sync_status(
-        aid, success=False, error="ConnectionError: blip",
+        aid,
+        success=False,
+        error="ConnectionError: blip",
     )
 
     async with tmp_db.execute(

@@ -49,9 +49,7 @@ async def test_merge_deletes_discarded_person(tmp_db: aiosqlite.Connection) -> N
     )
     await merge_people(tmp_db, keep_id=keep, discard_id=discard)
 
-    async with tmp_db.execute(
-        "SELECT 1 FROM people WHERE id=?", (discard,)
-    ) as cur:
+    async with tmp_db.execute("SELECT 1 FROM people WHERE id=?", (discard,)) as cur:
         assert (await cur.fetchone()) is None
 
 

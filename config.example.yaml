@@ -1,31 +1,105 @@
-# Example AccountPilot config.
-# Copy to ~/.config/accountpilot/config.yaml (or
-# ~/Library/Application Support/accountpilot/config.yaml on macOS)
-# and edit. Apply with `accountpilot setup`.
+# MailPilot Configuration
+# Copy to ~/.mailpilot/config.yaml and edit for your setup.
 
-version: 1
+mailpilot:
+  data_dir: "~/.mailpilot"
+  log_level: "INFO"
+  log_format: "json"
+  # log_file: "~/.mailpilot/mailpilot.log"
 
-owners:
-  - name: Your Name
-    surname: ""
-    identifiers:
-      - { kind: email, value: you@example.com }
-      # Add phone for cross-source identity unification with iMessage:
-      # - { kind: phone, value: "+15551234567" }   # E.164 format
+accounts:
+  - name: "personal"
+    email: "you@gmail.com"
+    display_name: "Your Name"
+    provider: "gmail"
 
-plugins:
-  mail:
-    enabled: true
-    accounts:
-      - identifier: you@example.com
-        owner: you@example.com
-        provider: gmail   # gmail | outlook | imap-generic
-        # OAuth (recommended) — first run: accountpilot oauth login google 1
-        credentials_ref: "oauth:google:1"
-        # OR password (legacy): credentials_ref: "password_cmd:security find-generic-password ..."
+    imap:
+      host: "imap.gmail.com"
+      port: 993
+      encryption: "tls"
+      auth:
+        method: "password"
+        password_cmd: "security find-generic-password -s mailpilot-personal -w"
 
-  imessage:    # macOS only
-    enabled: true
-    accounts:
-      - identifier: "+15551234567"   # your iCloud-tied phone in E.164
-        owner: "you@example.com"
+    smtp:
+      host: "smtp.gmail.com"
+      port: 587
+      encryption: "starttls"
+      auth:
+        method: "password"
+        password_cmd: "security find-generic-password -s mailpilot-personal -w"
+
+    folders:
+      watch:
+        - "INBOX"
+      sync:
+        - "INBOX"
+        - "[Gmail]/Sent Mail"
+        - "[Gmail]/Drafts"
+      aliases:
+        sent: "[Gmail]/Sent Mail"
+        drafts: "[Gmail]/Drafts"
+        trash: "[Gmail]/Trash"
+        spam: "[Gmail]/Spam"
+
+    # webhook_url: "http://localhost:8080/webhook/email"
+
+  - name: "work"
+    email: "you@company.com"
+    provider: "outlook"
+
+    imap:
+      host: "outlook.office365.com"
+      port: 993
+      encryption: "tls"
+      auth:
+        method: "oauth2"
+        client_id: "your-client-id"
+        client_secret: "your-client-secret"
+
+    smtp:
+      host: "smtp.office365.com"
+      port: 587
+      encryption: "starttls"
+      auth:
+        method: "oauth2"
+        client_id: "your-client-id"
+        client_secret: "your-client-secret"
+
+    folders:
+      watch:
+        - "INBOX"
+      sync:
+        - "INBOX"
+        - "Sent Items"
+        - "Drafts"
+      aliases:
+        sent: "Sent Items"
+        drafts: "Drafts"
+        trash: "Deleted Items"
+        spam: "Junk Email"
+
+search:
+  stemming: "english"
+  spelling: true
+  snippet_length: 200
+  default_limit: 20
+
+sync:
+  idle_timeout: 1680
+  reconnect_base_delay: 5
+  reconnect_max_delay: 300
+  full_sync_interval: 3600
+  max_message_size: 52428800  # 50 MB
+
+rules:
+  - name: "tag-github"
+    match: "from:notifications@github.com"
+    actions:
+      - tag: "+github"
+
+  - name: "tag-receipts"
+    match: "subject:receipt OR subject:invoice"
+    actions:
+      - tag: "+receipt"
+      - tag: "+finance"

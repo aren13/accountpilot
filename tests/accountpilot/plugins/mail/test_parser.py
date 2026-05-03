@@ -70,9 +70,13 @@ def test_parse_email_with_attachment() -> None:
         b"--BOUND--\n"
     )
     msg = parse_rfc822_to_email_message(
-        raw_bytes=raw, account_id=1, mailbox="INBOX",
-        imap_uid=43, direction="inbound",
-        gmail_thread_id=None, labels=[],
+        raw_bytes=raw,
+        account_id=1,
+        mailbox="INBOX",
+        imap_uid=43,
+        direction="inbound",
+        gmail_thread_id=None,
+        labels=[],
     )
     assert len(msg.attachments) == 1
     a = msg.attachments[0]
@@ -83,9 +87,13 @@ def test_parse_email_with_attachment() -> None:
 
 def test_parse_propagates_raw_headers() -> None:
     msg = parse_rfc822_to_email_message(
-        raw_bytes=_SAMPLE_RFC822, account_id=1, mailbox="INBOX",
-        imap_uid=42, direction="inbound",
-        gmail_thread_id=None, labels=[],
+        raw_bytes=_SAMPLE_RFC822,
+        account_id=1,
+        mailbox="INBOX",
+        imap_uid=42,
+        direction="inbound",
+        gmail_thread_id=None,
+        labels=[],
     )
     assert msg.raw_headers["Subject"] == "Hello"
     assert "abc-123" in msg.raw_headers["Message-ID"]
@@ -107,9 +115,13 @@ def test_parse_decodes_rfc2047_subject() -> None:
         b"body\n"
     )
     msg = parse_rfc822_to_email_message(
-        raw_bytes=raw, account_id=1, mailbox="INBOX",
-        imap_uid=1, direction="inbound",
-        gmail_thread_id=None, labels=[],
+        raw_bytes=raw,
+        account_id=1,
+        mailbox="INBOX",
+        imap_uid=1,
+        direction="inbound",
+        gmail_thread_id=None,
+        labels=[],
     )
     assert msg.subject == "Merhaba dünya"
 
@@ -129,9 +141,13 @@ def test_parse_decodes_rfc2047_continuation_subject() -> None:
         b"body\n"
     )
     msg = parse_rfc822_to_email_message(
-        raw_bytes=raw, account_id=1, mailbox="INBOX",
-        imap_uid=1, direction="inbound",
-        gmail_thread_id=None, labels=[],
+        raw_bytes=raw,
+        account_id=1,
+        mailbox="INBOX",
+        imap_uid=1,
+        direction="inbound",
+        gmail_thread_id=None,
+        labels=[],
     )
     assert msg.subject == "Kosmos Yunanistan Vize Hizmetleri Randevu detayınız"
 
@@ -148,8 +164,12 @@ def test_parse_decodes_rfc2047_from_display_name() -> None:
         b"body\n"
     )
     msg = parse_rfc822_to_email_message(
-        raw_bytes=raw, account_id=1, mailbox="INBOX",
-        imap_uid=1, direction="inbound",
-        gmail_thread_id=None, labels=[],
+        raw_bytes=raw,
+        account_id=1,
+        mailbox="INBOX",
+        imap_uid=1,
+        direction="inbound",
+        gmail_thread_id=None,
+        labels=[],
     )
     assert "Akıllı Öneri Sistemi" in msg.from_address

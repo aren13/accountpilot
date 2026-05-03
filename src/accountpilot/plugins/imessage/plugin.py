@@ -51,7 +51,10 @@ class IMessagePlugin(AccountPilotPlugin):
     name: ClassVar[str] = "imessage"
 
     def __init__(
-        self, config: dict[str, Any], storage: Any, secrets: Secrets,
+        self,
+        config: dict[str, Any],
+        storage: Any,
+        secrets: Secrets,
     ) -> None:
         super().__init__(config=config, storage=storage, secrets=secrets)
         self._cfg = IMessagePluginConfig.model_validate(config)
@@ -63,7 +66,9 @@ class IMessagePlugin(AccountPilotPlugin):
         self._watcher: ChatDbWatcher | None = None
 
     def _make_real_reader(
-        self, account: IMessageAccountConfig, account_id: int,
+        self,
+        account: IMessageAccountConfig,
+        account_id: int,
     ) -> ChatDbReader:
         return ChatDbReader(account.chat_db_path, account_id=account_id)
 
@@ -92,13 +97,19 @@ class IMessagePlugin(AccountPilotPlugin):
         )
 
     async def backfill(
-        self, account_id: int, *, since: datetime | None = None,
+        self,
+        account_id: int,
+        *,
+        since: datetime | None = None,
     ) -> None:
         await self.sync_once(account_id, since=since)
         await self._mark_backfilled(account_id)
 
     async def sync_once(
-        self, account_id: int, *, since: datetime | None = None,
+        self,
+        account_id: int,
+        *,
+        since: datetime | None = None,
     ) -> None:
         account = await self._resolve_account(account_id)
         # Watermark: if `since` was provided, use it; else read the
@@ -118,15 +129,20 @@ class IMessagePlugin(AccountPilotPlugin):
                 elif result.action == "skipped":
                     skipped += 1
             await self.storage.update_sync_status(
-                account_id, success=True, messages_added=inserted,
+                account_id,
+                success=True,
+                messages_added=inserted,
             )
             log.info(
                 "imessage sync_once account=%d inserted=%d skipped=%d",
-                account_id, inserted, skipped,
+                account_id,
+                inserted,
+                skipped,
             )
         except Exception as e:
             await self.storage.update_sync_status(
-                account_id, success=False,
+                account_id,
+                success=False,
                 error=f"{type(e).__name__}: {e}",
             )
             raise

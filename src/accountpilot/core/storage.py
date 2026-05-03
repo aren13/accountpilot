@@ -186,15 +186,19 @@ class Storage:
         # find_or_create_person's internal commits don't interleave.
         sender_kind = kind_for_imessage_handle(msg.sender_handle)
         sender_pid = await find_or_create_person(
-            self.db, kind=sender_kind,
-            value=msg.sender_handle, default_name=None,
+            self.db,
+            kind=sender_kind,
+            value=msg.sender_handle,
+            default_name=None,
         )
         participant_pids: list[int] = []
         for handle in msg.participants:
             ph_kind = kind_for_imessage_handle(handle)
             pid = await find_or_create_person(
-                self.db, kind=ph_kind,
-                value=handle, default_name=None,
+                self.db,
+                kind=ph_kind,
+                value=handle,
+                default_name=None,
             )
             participant_pids.append(pid)
 
@@ -226,9 +230,14 @@ class Storage:
                 "sent_at, body_text, direction, created_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
-                    msg.account_id, source, msg.external_id,
-                    msg.chat_guid, msg.sent_at.isoformat(),
-                    msg.body_text, msg.direction, now,
+                    msg.account_id,
+                    source,
+                    msg.external_id,
+                    msg.chat_guid,
+                    msg.sent_at.isoformat(),
+                    msg.body_text,
+                    msg.direction,
+                    now,
                 ),
             )
             message_id = cur2.lastrowid
@@ -238,7 +247,9 @@ class Storage:
                 "INSERT INTO imessage_details (message_id, chat_guid, service, "
                 "is_from_me, is_read, date_read) VALUES (?, ?, ?, ?, ?, ?)",
                 (
-                    message_id, msg.chat_guid, msg.service,
+                    message_id,
+                    msg.chat_guid,
+                    msg.service,
                     1 if msg.direction == "outbound" else 0,
                     1 if msg.is_read else 0,
                     msg.date_read.isoformat() if msg.date_read else None,
@@ -262,8 +273,12 @@ class Storage:
                     "INSERT INTO attachments (message_id, filename, content_hash, "
                     "mime_type, size_bytes, cas_path) VALUES (?, ?, ?, ?, ?, ?)",
                     (
-                        message_id, blob.filename, content_hash, blob.mime_type,
-                        len(blob.content), cas_rel,
+                        message_id,
+                        blob.filename,
+                        content_hash,
+                        blob.mime_type,
+                        len(blob.content),
+                        cas_rel,
                     ),
                 )
 
@@ -319,9 +334,12 @@ class Storage:
                     "INSERT OR IGNORE INTO identifiers "
                     "(person_id, kind, value, is_primary, created_at) "
                     "VALUES (?, ?, ?, 0, ?)",
-                    (keep_id, ident.kind,
-                     _normalize_for_kind(ident.kind, ident.value),
-                     datetime.now(UTC).isoformat()),
+                    (
+                        keep_id,
+                        ident.kind,
+                        _normalize_for_kind(ident.kind, ident.value),
+                        datetime.now(UTC).isoformat(),
+                    ),
                 )
             await self.db.commit()
             return keep_id
@@ -395,9 +413,7 @@ class Storage:
             return None
         return datetime.fromisoformat(str(row["s"]))
 
-    async def latest_imap_uid(
-        self, account_id: int, mailbox: str
-    ) -> int | None:
+    async def latest_imap_uid(self, account_id: int, mailbox: str) -> int | None:
         """Highest imap_uid already ingested for this account+mailbox combo."""
         async with self.db.execute(
             "SELECT MAX(ed.imap_uid) AS u "

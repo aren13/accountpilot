@@ -95,16 +95,12 @@ def listener(
 class TestIdleListener:
     """Unit tests for IdleListener."""
 
-    def test_idle_is_running_default(
-        self, listener: IdleListener
-    ) -> None:
+    def test_idle_is_running_default(self, listener: IdleListener) -> None:
         """A freshly created listener must not be running."""
         assert listener.is_running is False
 
     @pytest.mark.asyncio
-    async def test_idle_stop_clean(
-        self, listener: IdleListener
-    ) -> None:
+    async def test_idle_stop_clean(self, listener: IdleListener) -> None:
         """Calling stop sets _running to False."""
         listener._running = True
         assert listener.is_running is True
@@ -130,9 +126,7 @@ class TestIdleListener:
         )
         assert idle._on_new_mail is callback
 
-    def test_idle_stores_folder(
-        self, listener: IdleListener
-    ) -> None:
+    def test_idle_stores_folder(self, listener: IdleListener) -> None:
         """The folder is stored correctly."""
         assert listener._folder == "INBOX"
 
@@ -153,6 +147,4 @@ class TestIdleListener:
         """Stop calls disconnect on the IMAP client."""
         listener._running = True
         await listener.stop()
-        mock_imap_client.disconnect.assert_awaited_once_with(
-            "INBOX"
-        )
+        mock_imap_client.disconnect.assert_awaited_once_with("INBOX")
