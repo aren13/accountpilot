@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — IN PROGRESS (AP-SP5)
+
+### Added
+- **macOS .app distribution.** AccountPilot now ships as a drag-to-Applications
+  `.app` bundle with embedded Python.framework. End users no longer need brew or
+  pip. Phase 1 ships the skeleton: a notarized .app that opens and runs the
+  bundled CLI. Subsequent phases add account UI, FDA wizard, sync status,
+  data viewer, and Sparkle auto-update.
+
+(more entries land per phase)
+
 ## [0.1.4] — 2026-05-04 (AP-SP4)
 
 ### Fixed

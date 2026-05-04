@@ -34,3 +34,9 @@ Thumbs.db
 # MailPilot data (never commit user data)
 .mailpilot/
 .claude/
+
+# 0.2 .app build artifacts
+dist/AccountPilot.app/
+dist/AccountPilot-*.dmg
+app/build/
+.python-cache/

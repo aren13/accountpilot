@@ -1,0 +1,60 @@
+name: AccountPilot
+options:
+  bundleIdPrefix: com.accountpilot
+  deploymentTarget:
+    macOS: "13.0"
+  developmentLanguage: en
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: P2R7PD8VGY
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Developer ID Application: FAZLA GIDA ANONIM SIRKETI (P2R7PD8VGY)"
+    OTHER_CODE_SIGN_FLAGS: "--timestamp"
+    ENABLE_HARDENED_RUNTIME: YES
+    MARKETING_VERSION: "0.2.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  AccountPilot:
+    type: application
+    platform: macOS
+    sources:
+      - path: AccountPilot
+    resources:
+      - path: AccountPilot/Assets.xcassets
+    info:
+      path: AccountPilot/Info.plist
+      properties:
+        CFBundleIdentifier: com.accountpilot.app
+        CFBundleName: AccountPilot
+        CFBundleDisplayName: AccountPilot
+        CFBundleShortVersionString: "0.2.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "13.0"
+        LSUIElement: false
+        NSHumanReadableCopyright: "Copyright (C) 2026 Hasan Arda Eren. AGPL-3.0-or-later."
+    entitlements:
+      path: AccountPilot/AccountPilot.entitlements
+      properties:
+        com.apple.security.app-sandbox: false       # FDA helper requires non-sandboxed parent
+        com.apple.security.cs.allow-jit: false
+        com.apple.security.cs.allow-unsigned-executable-memory: false
+        # Embedded Python loads .so files signed by PyPI publishers (pydantic,
+        # cryptography, …) with their own Team IDs. Default library validation
+        # rejects these as "different Team ID". Disable so dyld trusts any
+        # signed .dylib/.so loaded into the process.
+        com.apple.security.cs.disable-library-validation: true
+
+  AccountPilotTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: AccountPilotTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+    dependencies:
+      - target: AccountPilot
