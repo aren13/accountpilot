@@ -32,6 +32,7 @@ import click
 from accountpilot.core.cli.accounts_cmds import accounts_group
 from accountpilot.core.cli.config_cmd import config_group
 from accountpilot.core.cli.db_cmds import db_group
+from accountpilot.core.cli.messages_cmds import messages_group
 from accountpilot.core.cli.oauth_cmd import oauth_group
 from accountpilot.core.cli.people_cmds import people_group
 from accountpilot.core.cli.search_cmd import search_cmd
@@ -52,6 +53,7 @@ cli.add_command(config_group)
 cli.add_command(db_group)
 cli.add_command(search_cmd)
 cli.add_command(status_cmd)
+cli.add_command(messages_group)
 cli.add_command(people_group)
 cli.add_command(accounts_group)
 cli.add_command(setup_cmd)
