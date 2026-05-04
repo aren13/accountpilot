@@ -252,3 +252,44 @@ def accounts_delete(account_id: int, force: bool, db_path: Path) -> None:
         click.echo(f"deleted account #{account_id}")
 
     asyncio.run(_run())
+
+
+@accounts_group.command("remove")
+@click.argument("account_id", type=int)
+@click.option("--json", "json_out", is_flag=True)
+@_db_option
+def accounts_remove(account_id: int, json_out: bool, db_path: Path) -> None:
+    """Delete an account + its messages + sync_status (no confirmation)."""
+
+    async def _run() -> dict[str, Any]:
+        async with open_db(db_path) as db:
+            async with db.execute(
+                "SELECT id FROM accounts WHERE id=?", (account_id,)
+            ) as cur:
+                row = await cur.fetchone()
+            if row is None:
+                return {
+                    "ok": False,
+                    "error": {
+                        "code": "ACCOUNT_NOT_FOUND",
+                        "message": f"no account with id={account_id}",
+                    },
+                }
+            await db.execute("DELETE FROM messages WHERE account_id=?", (account_id,))
+            await db.execute(
+                "DELETE FROM sync_status WHERE account_id=?", (account_id,)
+            )
+            await db.execute("DELETE FROM accounts WHERE id=?", (account_id,))
+            await db.commit()
+        return {"ok": True}
+
+    result = asyncio.run(_run())
+    if json_out:
+        if result["ok"]:
+            _emit_envelope(data={"removed_id": account_id})
+        else:
+            _emit_envelope(error=result["error"])
+        return
+    if not result["ok"]:
+        raise click.ClickException(result["error"]["message"])
+    click.echo(f"removed account #{account_id}")

@@ -235,3 +235,33 @@ def test_add_duplicate_identifier_returns_error(tmp_path: Path) -> None:
     assert payload["ok"] is False
     assert payload["error"]["code"] == "ACCOUNT_EXISTS"
     assert "ada@example.com" in payload["error"]["message"]
+
+
+def test_remove_deletes_account(populated_db: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        accounts_group, ["remove", "1", "--json", "--db-path", str(populated_db)]
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload == {
+        "ok": True,
+        "data": {"removed_id": 1},
+        "error": None,
+    }
+
+    list_result = runner.invoke(
+        accounts_group, ["list", "--json", "--db-path", str(populated_db)]
+    )
+    assert json.loads(list_result.output)["data"]["accounts"] == []
+
+
+def test_remove_unknown_id_returns_error(populated_db: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        accounts_group, ["remove", "999", "--json", "--db-path", str(populated_db)]
+    )
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "ACCOUNT_NOT_FOUND"
