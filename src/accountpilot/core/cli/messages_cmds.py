@@ -295,3 +295,63 @@ def messages_get(message_id: int, json_out: bool, db_path: Path) -> None:
         click.echo(
             f"  attachment: {a['filename']} ({a['size_bytes']} bytes)"
         )
+
+
+@click.group("attachments")
+def attachments_group() -> None:
+    """Resolve attachment metadata + CAS paths."""
+
+
+@attachments_group.command("path")
+@click.argument("attachment_id", type=int)
+@click.option("--json", "json_out", is_flag=True)
+@_db_option
+def attachments_path(
+    attachment_id: int, json_out: bool, db_path: Path
+) -> None:
+    """Resolve an attachment id to its absolute filesystem path.
+
+    The CAS root is `<db_path.parent>/attachments/`. The `cas_path`
+    column on the `attachments` table is stored relative to that root.
+    """
+
+    async def _run() -> dict[str, Any]:
+        async with (
+            open_db(db_path) as db,
+            db.execute(
+                "SELECT id, cas_path, size_bytes FROM attachments WHERE id = ?",
+                (attachment_id,),
+            ) as cur,
+        ):
+            row = await cur.fetchone()
+        if row is None:
+            return {
+                "ok": False,
+                "error": {
+                    "code": "ATTACHMENT_NOT_FOUND",
+                    "message": f"no attachment with id={attachment_id}",
+                },
+            }
+        absolute = (
+            db_path.parent / "attachments" / row["cas_path"]
+        ).resolve()
+        return {
+            "ok": True,
+            "data": {
+                "id": row["id"],
+                "absolute_path": str(absolute),
+                "exists": absolute.exists(),
+                "size_bytes": row["size_bytes"],
+            },
+        }
+
+    result = asyncio.run(_run())
+    if json_out:
+        if result["ok"]:
+            _emit_envelope(data=result["data"])
+        else:
+            _emit_envelope(error=result["error"])
+        return
+    if not result["ok"]:
+        raise click.ClickException(result["error"]["message"])
+    click.echo(result["data"]["absolute_path"])

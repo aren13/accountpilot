@@ -225,3 +225,50 @@ def test_messages_get_unknown_id(tmp_path: Path) -> None:
     payload = json.loads(result.output)
     assert payload["ok"] is False
     assert payload["error"]["code"] == "MESSAGE_NOT_FOUND"
+
+
+def test_attachments_path_returns_resolved_path(populated_db: Path) -> None:
+    """Returns the absolute CAS path joined to <db_path.parent>/attachments/."""
+    from accountpilot.core.cli.messages_cmds import attachments_group
+    runner = CliRunner()
+    cas_root = populated_db.parent / "attachments"
+    cas_root.joinpath("ab/c1").mkdir(parents=True, exist_ok=True)
+    blob = cas_root / "ab/c1/abc123.bin"
+    blob.write_bytes(b"x" * 4096)
+
+    result = runner.invoke(
+        attachments_group,
+        ["path", "1", "--json", "--db-path", str(populated_db)],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["ok"] is True
+    assert payload["data"]["id"] == 1
+    assert payload["data"]["absolute_path"] == str(blob.resolve())
+    assert payload["data"]["exists"] is True
+    assert payload["data"]["size_bytes"] == 4096
+
+
+def test_attachments_path_unknown_id(populated_db: Path) -> None:
+    from accountpilot.core.cli.messages_cmds import attachments_group
+    runner = CliRunner()
+    result = runner.invoke(
+        attachments_group,
+        ["path", "999", "--json", "--db-path", str(populated_db)],
+    )
+    payload = json.loads(result.output)
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "ATTACHMENT_NOT_FOUND"
+
+
+def test_attachments_path_missing_blob_reports_exists_false(populated_db: Path) -> None:
+    from accountpilot.core.cli.messages_cmds import attachments_group
+    runner = CliRunner()
+    # Don't create the blob on disk.
+    result = runner.invoke(
+        attachments_group,
+        ["path", "1", "--json", "--db-path", str(populated_db)],
+    )
+    payload = json.loads(result.output)
+    assert payload["ok"] is True
+    assert payload["data"]["exists"] is False
