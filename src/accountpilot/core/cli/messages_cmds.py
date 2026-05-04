@@ -160,3 +160,138 @@ def messages_list(
         click.echo(
             f"#{m['id']} [{m['source']}] {m['sent_at']}  {label}"
         )
+
+
+@messages_group.command("get")
+@click.argument("message_id", type=int)
+@click.option("--json", "json_out", is_flag=True)
+@_db_option
+def messages_get(message_id: int, json_out: bool, db_path: Path) -> None:
+    """Fetch a single message + its attachments + recipients."""
+
+    async def _run() -> dict[str, Any]:
+        async with open_db(db_path) as db:
+            async with db.execute(
+                "SELECT id, account_id, source, sent_at, received_at, "
+                "thread_id, body_text, body_html, direction "
+                "FROM messages WHERE id = ?",
+                (message_id,),
+            ) as cur:
+                m = await cur.fetchone()
+            if m is None:
+                return {
+                    "ok": False,
+                    "error": {
+                        "code": "MESSAGE_NOT_FOUND",
+                        "message": f"no message with id={message_id}",
+                    },
+                }
+
+            msg: dict[str, Any] = {
+                "id": m["id"],
+                "source": m["source"],
+                "account_id": m["account_id"],
+                "sent_at": m["sent_at"],
+                "received_at": m["received_at"],
+                "thread_id": m["thread_id"],
+                "body_text": m["body_text"],
+                "body_html": m["body_html"],
+                "direction": m["direction"],
+                "subject": None,
+                "email": None,
+                "imessage": None,
+                "people": [],
+                "attachments": [],
+            }
+
+            async with db.execute(
+                "SELECT subject, in_reply_to, references_json, imap_uid, "
+                "mailbox, gmail_thread_id, labels_json "
+                "FROM email_details WHERE message_id = ?",
+                (message_id,),
+            ) as cur:
+                ed = await cur.fetchone()
+            if ed is not None:
+                msg["subject"] = ed["subject"]
+                msg["email"] = {
+                    "in_reply_to": ed["in_reply_to"],
+                    "references_json": ed["references_json"],
+                    "imap_uid": ed["imap_uid"],
+                    "mailbox": ed["mailbox"],
+                    "gmail_thread_id": ed["gmail_thread_id"],
+                    "labels_json": ed["labels_json"],
+                }
+
+            async with db.execute(
+                "SELECT chat_guid, service, is_from_me, is_read, date_read "
+                "FROM imessage_details WHERE message_id = ?",
+                (message_id,),
+            ) as cur:
+                im = await cur.fetchone()
+            if im is not None:
+                msg["imessage"] = {
+                    "chat_guid": im["chat_guid"],
+                    "service": im["service"],
+                    "is_from_me": bool(im["is_from_me"]),
+                    "is_read": bool(im["is_read"]),
+                    "date_read": im["date_read"],
+                }
+
+            async with db.execute(
+                """
+                SELECT mp.role, p.id, p.name, p.surname,
+                       (SELECT value FROM identifiers
+                        WHERE person_id = p.id AND is_primary = 1
+                        LIMIT 1) AS identifier
+                FROM message_people mp
+                JOIN people p ON p.id = mp.person_id
+                WHERE mp.message_id = ?
+                ORDER BY mp.role
+                """,
+                (message_id,),
+            ) as cur:
+                async for row in cur:
+                    full_name = (
+                        f"{row['name']} {row['surname']}".strip()
+                        if row["surname"]
+                        else row["name"]
+                    )
+                    msg["people"].append({
+                        "role": row["role"],
+                        "id": row["id"],
+                        "name": full_name,
+                        "identifier": row["identifier"],
+                    })
+
+            async with db.execute(
+                "SELECT id, filename, content_hash, mime_type, size_bytes "
+                "FROM attachments WHERE message_id = ? ORDER BY id",
+                (message_id,),
+            ) as cur:
+                async for row in cur:
+                    msg["attachments"].append({
+                        "id": row["id"],
+                        "filename": row["filename"],
+                        "content_hash": row["content_hash"],
+                        "mime_type": row["mime_type"],
+                        "size_bytes": row["size_bytes"],
+                    })
+
+        return {"ok": True, "message": msg}
+
+    result = asyncio.run(_run())
+    if json_out:
+        if result["ok"]:
+            _emit_envelope(data={"message": result["message"]})
+        else:
+            _emit_envelope(error=result["error"])
+        return
+    if not result["ok"]:
+        raise click.ClickException(result["error"]["message"])
+    msg = result["message"]
+    label = msg.get("subject") or (msg["body_text"][:80])
+    click.echo(f"#{msg['id']} [{msg['source']}] {msg['sent_at']}  {label}")
+    for a in msg["attachments"]:
+        click.echo(
+            f"  attachment: {a['filename']} ({a['size_bytes']} bytes)"
+        )

@@ -169,3 +169,59 @@ def test_messages_list_pagination_via_cursor(populated_db: Path) -> None:
     p2 = json.loads(result2.output)
     assert [m["id"] for m in p2["data"]["messages"]] == [10]
     assert p2["data"]["next_cursor"] is None
+
+
+def test_messages_get_imessage_with_attachment(populated_db: Path) -> None:
+    """Message #12 from the seed has an attachment + Charles is from."""
+    runner = CliRunner()
+    result = runner.invoke(
+        messages_group,
+        ["get", "12", "--json", "--db-path", str(populated_db)],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    m = payload["data"]["message"]
+    assert m["id"] == 12
+    assert m["source"] == "imessage"
+    assert m["body_text"] == "newest msg"
+    assert m["email"] is None
+    assert m["subject"] is None
+    assert any(
+        p["role"] == "from" and p["name"] == "Charles Babbage"
+        for p in m["people"]
+    )
+    assert len(m["attachments"]) == 1
+    a = m["attachments"][0]
+    assert a["filename"] == "pic.jpg"
+    assert a["mime_type"] == "image/jpeg"
+    assert a["content_hash"] == "abc123"
+    assert "cas_path" not in a   # opaque; fetched separately
+
+
+def test_messages_get_email_with_subject(populated_db: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        messages_group,
+        ["get", "11", "--json", "--db-path", str(populated_db)],
+    )
+    payload = json.loads(result.output)
+    m = payload["data"]["message"]
+    assert m["source"] == "gmail"
+    assert m["subject"] == "Middle subject"
+    assert m["email"] is not None
+    assert m["email"]["mailbox"] == "INBOX"
+    assert m["email"]["imap_uid"] == 2
+    assert m["imessage"] is None
+
+
+def test_messages_get_unknown_id(tmp_path: Path) -> None:
+    """Returns ACCOUNT_NOT_FOUND-style envelope (not an exception)."""
+    db = tmp_path / "fresh.db"
+    runner = CliRunner()
+    result = runner.invoke(
+        messages_group,
+        ["get", "999", "--json", "--db-path", str(db)],
+    )
+    payload = json.loads(result.output)
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "MESSAGE_NOT_FOUND"
