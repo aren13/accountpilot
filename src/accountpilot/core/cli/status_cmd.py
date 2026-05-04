@@ -19,12 +19,23 @@
 from __future__ import annotations
 
 import asyncio
+import json
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import click
 
 from accountpilot.core import paths
 from accountpilot.core.db.connection import open_db
+
+
+def _emit_envelope(
+    *, data: Any | None = None, error: dict[str, str] | None = None
+) -> None:
+    """Emit the standard JSON envelope to stdout. One call per CLI invocation."""
+    payload = {"ok": error is None, "data": data, "error": error}
+    click.echo(json.dumps(payload))
 
 
 @click.command("status")
@@ -34,8 +45,44 @@ from accountpilot.core.db.connection import open_db
     default=paths.db_path,
     show_default="$ACCOUNTPILOT_DATA_DIR/accountpilot.db",
 )
-def status_cmd(db_path: Path) -> None:
+@click.option("--json", "json_out", is_flag=True, help="Emit JSON envelope.")
+def status_cmd(db_path: Path, json_out: bool) -> None:
     """Per-account health summary."""
+
+    if json_out:
+
+        async def _run_json() -> None:
+            async with (
+                open_db(db_path) as db,
+                db.execute(
+                    "SELECT a.id, a.source, a.account_identifier AS identifier, "
+                    "       s.last_sync_at, s.last_error, "
+                    "       COALESCE(s.messages_ingested, 0) AS synced_count "
+                    "FROM accounts a "
+                    "LEFT JOIN sync_status s ON s.account_id = a.id "
+                    "ORDER BY a.id"
+                ) as cur,
+            ):
+                rows = await cur.fetchall()
+            _emit_envelope(
+                data={
+                    "accounts": [
+                        {
+                            "id": r["id"],
+                            "source": r["source"],
+                            "identifier": r["identifier"],
+                            "last_sync_at": r["last_sync_at"],
+                            "last_error": r["last_error"],
+                            "synced_count": r["synced_count"],
+                        }
+                        for r in rows
+                    ],
+                    "generated_at": datetime.now(UTC).isoformat(),
+                }
+            )
+
+        asyncio.run(_run_json())
+        return
 
     async def _run() -> None:
         async with (
