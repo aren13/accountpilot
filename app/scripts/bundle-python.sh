@@ -57,6 +57,29 @@ rm -rf "$FW_DIR/Python.framework" "$FW_DIR/python"
 tar -xzf "$CACHE_DIR/$TARBALL" -C "$FW_DIR"
 # Tarball already extracts to "python/"; keep that name (no .framework extension).
 
+# Strip components accountpilot (a CLI) doesn't need. Tcl/Tk in particular
+# ship versioned data dirs (e.g. lib/tcl8/8.6/) that codesign mistakes for
+# malformed bundles, breaking the outer-bundle sign step with
+# "bundle format unrecognized, invalid, or unsuitable / In subcomponent: ...".
+# Also strip headers, share/, and GUI Python tools to slim the bundle.
+echo "==> stripping unused Python components (tcl/tk, headers, idle, test)"
+rm -rf \
+    "$FW_DIR/python/lib/tcl8" \
+    "$FW_DIR/python/lib/tcl8.6" \
+    "$FW_DIR/python/lib/tk8.6" \
+    "$FW_DIR/python/lib/itcl4.2.4" \
+    "$FW_DIR/python/lib/thread2.8.9" \
+    "$FW_DIR/python/lib/python3.13/tkinter" \
+    "$FW_DIR/python/lib/python3.13/idlelib" \
+    "$FW_DIR/python/lib/python3.13/turtledemo" \
+    "$FW_DIR/python/lib/python3.13/test" \
+    "$FW_DIR/python/include" \
+    "$FW_DIR/python/share" \
+    "$FW_DIR/python/bin/idle3" \
+    "$FW_DIR/python/bin/idle3.13" \
+    "$FW_DIR/python/bin/2to3" \
+    "$FW_DIR/python/bin/2to3-3.13"
+
 PYTHON_BIN="$FW_DIR/python/bin/python3"
 test -x "$PYTHON_BIN" || { echo "error: $PYTHON_BIN not executable" >&2; exit 70; }
 
