@@ -64,7 +64,7 @@ struct PythonRuntime {
     private func bundledInterpreter() -> URL {
         // Bundle.main.bundlePath = /Applications/AccountPilot.app
         Bundle.main.bundleURL
-            .appendingPathComponent("Contents/Frameworks/python/bin/python3")
+            .appendingPathComponent("Contents/Resources/python/runtime/bin/python3")
     }
 
     private func readAll(_ handle: FileHandle) async -> Data {

@@ -5,24 +5,30 @@
 #
 # Inputs (from build-app.sh): $APP_BUNDLE — absolute path to AccountPilot.app
 # Output:
-#   $APP_BUNDLE/Contents/Frameworks/python/             (interpreter + stdlib)
+#   $APP_BUNDLE/Contents/Resources/python/runtime/       (interpreter + stdlib)
 #   $APP_BUNDLE/Contents/Resources/python/site-packages/ (accountpilot + deps)
 #
 # python-build-standalone is relocatable: its dyld load commands and
 # stdlib paths are already rewritten to be bundle-relative.
 # https://github.com/astral-sh/python-build-standalone
 #
-# Note we use `Contents/Frameworks/python/` (no .framework extension).
-# python-build-standalone's install_only layout (`bin/`, `lib/`, …) is not
-# an Apple framework structure (which would require `Versions/A/...`).
-# Naming it `Python.framework` would make codesign reject the outer bundle
-# as "bundle format unrecognized."
+# WHY Resources/ AND NOT Frameworks/:
+# We deliberately put the embedded Python under Contents/Resources/, NOT
+# Contents/Frameworks/. python-build-standalone's `install_only` layout
+# (`bin/`, `lib/`, …) is not an Apple framework structure (which would
+# require `Versions/A/...`). When that tree lives under Frameworks/,
+# codesign treats every nested file as a signable subcomponent and trips
+# on data files (lib/tcl8/8.6, lib/pkgconfig/python-3.13.pc, bin/pip,
+# …), rejecting the outer .app with "bundle format unrecognized" or
+# "code object is not signed at all". Files under Contents/Resources/
+# are recorded in the bundle's CodeResources manifest instead, which is
+# what we want for a relocated CPython tree.
 #
-# We deliberately DO NOT use venv. venv writes the build-time absolute
-# path of the parent interpreter into every script's shebang, which
-# breaks when the .app is dragged to /Applications/. Using
-# `pip install --target=` produces a flat site-packages with no
-# relocation-sensitive scripts.
+# WHY NOT venv:
+# venv writes the build-time absolute path of the parent interpreter
+# into every script's shebang, which breaks when the .app is dragged to
+# /Applications/. Using `pip install --target=` produces a flat
+# site-packages with no relocation-sensitive scripts.
 
 set -euo pipefail
 
@@ -51,64 +57,61 @@ if [[ ! -f "$CACHE_DIR/$TARBALL" ]]; then
     curl -fL --output "$CACHE_DIR/$TARBALL" "$TARBALL_URL"
 fi
 
-FW_DIR="$APP_BUNDLE/Contents/Frameworks"
-mkdir -p "$FW_DIR"
-rm -rf "$FW_DIR/Python.framework" "$FW_DIR/python"
-tar -xzf "$CACHE_DIR/$TARBALL" -C "$FW_DIR"
-# Tarball already extracts to "python/"; keep that name (no .framework extension).
+PY_PARENT="$APP_BUNDLE/Contents/Resources/python"
+RUNTIME_DIR="$PY_PARENT/runtime"
+mkdir -p "$PY_PARENT"
+rm -rf "$RUNTIME_DIR" "$APP_BUNDLE/Contents/Frameworks/Python.framework" "$APP_BUNDLE/Contents/Frameworks/python"
+tar -xzf "$CACHE_DIR/$TARBALL" -C "$PY_PARENT"
+mv "$PY_PARENT/python" "$RUNTIME_DIR"
 
 # Strip components accountpilot (a CLI) doesn't need. Tcl/Tk in particular
-# ship versioned data dirs (e.g. lib/tcl8/8.6/) that codesign mistakes for
-# malformed bundles, breaking the outer-bundle sign step with
-# "bundle format unrecognized, invalid, or unsuitable / In subcomponent: ...".
-# Also strip headers, share/, and GUI Python tools to slim the bundle.
+# ship versioned data dirs (e.g. lib/tcl8/8.6/) — irrelevant for codesign
+# now that we're under Resources/, but still pure bloat. Also strip
+# headers, share/, and GUI Python tools.
 echo "==> stripping unused Python components (tcl/tk, headers, idle, test)"
 rm -rf \
-    "$FW_DIR/python/lib/tcl8" \
-    "$FW_DIR/python/lib/tcl8.6" \
-    "$FW_DIR/python/lib/tk8.6" \
-    "$FW_DIR/python/lib/itcl4.2.4" \
-    "$FW_DIR/python/lib/thread2.8.9" \
-    "$FW_DIR/python/lib/python3.13/tkinter" \
-    "$FW_DIR/python/lib/python3.13/idlelib" \
-    "$FW_DIR/python/lib/python3.13/turtledemo" \
-    "$FW_DIR/python/lib/python3.13/test" \
-    "$FW_DIR/python/lib/python3.13/config-3.13-darwin" \
-    "$FW_DIR/python/include" \
-    "$FW_DIR/python/share" \
-    "$FW_DIR/python/bin/idle3" \
-    "$FW_DIR/python/bin/idle3.13" \
-    "$FW_DIR/python/bin/2to3" \
-    "$FW_DIR/python/bin/2to3-3.13"
+    "$RUNTIME_DIR/lib/tcl8" \
+    "$RUNTIME_DIR/lib/tcl8.6" \
+    "$RUNTIME_DIR/lib/tk8.6" \
+    "$RUNTIME_DIR/lib/itcl4.2.4" \
+    "$RUNTIME_DIR/lib/thread2.8.9" \
+    "$RUNTIME_DIR/lib/python3.13/tkinter" \
+    "$RUNTIME_DIR/lib/python3.13/idlelib" \
+    "$RUNTIME_DIR/lib/python3.13/turtledemo" \
+    "$RUNTIME_DIR/lib/python3.13/test" \
+    "$RUNTIME_DIR/lib/python3.13/config-3.13-darwin" \
+    "$RUNTIME_DIR/include" \
+    "$RUNTIME_DIR/share" \
+    "$RUNTIME_DIR/bin/idle3" \
+    "$RUNTIME_DIR/bin/idle3.13" \
+    "$RUNTIME_DIR/bin/2to3" \
+    "$RUNTIME_DIR/bin/2to3-3.13"
 
-PYTHON_BIN="$FW_DIR/python/bin/python3"
+PYTHON_BIN="$RUNTIME_DIR/bin/python3"
 test -x "$PYTHON_BIN" || { echo "error: $PYTHON_BIN not executable" >&2; exit 70; }
 
-SITE_PACKAGES="$APP_BUNDLE/Contents/Resources/python/site-packages"
+SITE_PACKAGES="$PY_PARENT/site-packages"
 mkdir -p "$SITE_PACKAGES"
 
 echo "==> installing accountpilot + deps into $SITE_PACKAGES via pip --target"
 "$PYTHON_BIN" -m pip install --upgrade pip --quiet
 "$PYTHON_BIN" -m pip install --quiet --target="$SITE_PACKAGES" "$(pwd)"
 
-# Strip script-style executables that pip leaves in bin/. Codesign treats
-# every executable file inside the bundle as a signable subcomponent and
-# rejects the outer .app sign with "code object is not signed at all" if
-# any are unsigned. These are install-time helpers (pip, pydoc, config) —
-# we already pip-installed accountpilot above and don't need them at
-# runtime. Keep only python3.13 (Mach-O) + its symlinks (python, python3).
-echo "==> stripping post-install scripts from python/bin/"
+# Strip script-style executables left in bin/ by pip + the Python distro.
+# These are install-time helpers (pip, pydoc, python-config) — we already
+# pip-installed accountpilot above and don't need them at runtime.
+echo "==> stripping post-install scripts from runtime/bin/"
 rm -f \
-    "$FW_DIR/python/bin/pip" \
-    "$FW_DIR/python/bin/pip3" \
-    "$FW_DIR/python/bin/pip3.13" \
-    "$FW_DIR/python/bin/pydoc3" \
-    "$FW_DIR/python/bin/pydoc3.13" \
-    "$FW_DIR/python/bin/python3-config" \
-    "$FW_DIR/python/bin/python3.13-config" \
-    "$FW_DIR/python/bin/wheel" \
-    "$FW_DIR/python/bin/wheel3" \
-    "$FW_DIR/python/bin/wheel3.13"
+    "$RUNTIME_DIR/bin/pip" \
+    "$RUNTIME_DIR/bin/pip3" \
+    "$RUNTIME_DIR/bin/pip3.13" \
+    "$RUNTIME_DIR/bin/pydoc3" \
+    "$RUNTIME_DIR/bin/pydoc3.13" \
+    "$RUNTIME_DIR/bin/python3-config" \
+    "$RUNTIME_DIR/bin/python3.13-config" \
+    "$RUNTIME_DIR/bin/wheel" \
+    "$RUNTIME_DIR/bin/wheel3" \
+    "$RUNTIME_DIR/bin/wheel3.13"
 
 echo "==> verifying embedded accountpilot loads against bundled python"
 PYTHONPATH="$SITE_PACKAGES" "$PYTHON_BIN" -c \
@@ -127,7 +130,7 @@ set -e
 SHIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUNDLE_ROOT="$(cd "$SHIM_DIR/../../.." && pwd)"
 export PYTHONPATH="$BUNDLE_ROOT/Contents/Resources/python/site-packages"
-exec "$BUNDLE_ROOT/Contents/Frameworks/python/bin/python3" \
+exec "$BUNDLE_ROOT/Contents/Resources/python/runtime/bin/python3" \
     -m accountpilot.cli "$@"
 SHIM
 chmod +x "$SHIM_DIR/accountpilot"

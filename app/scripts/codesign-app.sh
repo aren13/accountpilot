@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Codesign every Mach-O inside the .app bundle, depth-first, then the
-# outer bundle. Required because --deep is unreliable for nested
-# Frameworks/python/ + Helpers/.
+# outer bundle. The embedded Python tree lives under
+# Contents/Resources/python/runtime/ — codesign treats Resources/ as
+# data, but we still sign the actual Mach-O binaries (interpreter +
+# .dylib/.so) for hardened-runtime compliance.
 
 set -euo pipefail
 
@@ -14,9 +16,9 @@ fi
 ENT="$(pwd)/app/AccountPilot/AccountPilot.entitlements"
 HELPER_ENT="$(pwd)/helpers/fda-helper/helper.entitlements"
 
-# 1. Sign every Mach-O inside Frameworks/python/
+# 1. Sign every Mach-O inside Resources/python/runtime/
 echo "==> signing embedded Python Mach-Os"
-find "$APP_BUNDLE/Contents/Frameworks/python" \
+find "$APP_BUNDLE/Contents/Resources/python/runtime" \
      -type f \( -name "*.dylib" -o -name "*.so" -o -perm -u+x \) \
      -print0 | while IFS= read -r -d '' mach; do
     # skip Python files, hash files, etc. by checking magic
