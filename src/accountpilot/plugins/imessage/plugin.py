@@ -35,6 +35,8 @@ from accountpilot.plugins.imessage.reader import (
 from accountpilot.plugins.imessage.watcher import ChatDbWatcher
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from accountpilot.core.auth import Secrets
 
 log = logging.getLogger(__name__)
@@ -110,7 +112,14 @@ class IMessagePlugin(AccountPilotPlugin):
         account_id: int,
         *,
         since: datetime | None = None,
-    ) -> None:
+        db_path: Path | None = None,  # noqa: ARG002 — storage injected via __init__
+    ) -> int:
+        """Sync once for the given account.
+
+        Returns the number of NEW messages written this invocation.
+        ``db_path`` is accepted for API symmetry with the CLI contract but
+        is unused — storage was injected at construction time.
+        """
         account = await self._resolve_account(account_id)
         # Watermark: if `since` was provided, use it; else read the
         # latest sent_at we've already stored for this account.
@@ -146,6 +155,7 @@ class IMessagePlugin(AccountPilotPlugin):
                 error=f"{type(e).__name__}: {e}",
             )
             raise
+        return inserted
 
     async def daemon(self, account_id: int) -> None:
         account = await self._resolve_account(account_id)

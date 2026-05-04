@@ -21,6 +21,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import datetime  # noqa: TC003 - needed for function signatures
 from importlib.metadata import entry_points
+from pathlib import Path  # noqa: TC003 - needed for sync_once signature
 from typing import Any, ClassVar
 
 import click  # noqa: TC002 - needed for cli() return type
@@ -51,7 +52,9 @@ class AccountPilotPlugin(ABC):
     ) -> None: ...
 
     @abstractmethod
-    async def sync_once(self, account_id: int) -> None: ...
+    async def sync_once(
+        self, account_id: int, *, db_path: Path | None = None
+    ) -> int: ...
 
     @abstractmethod
     async def daemon(self, account_id: int) -> None: ...

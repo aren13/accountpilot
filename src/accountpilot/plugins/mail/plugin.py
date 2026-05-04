@@ -22,9 +22,12 @@ import asyncio
 import logging
 from datetime import UTC, datetime
 from types import SimpleNamespace
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from accountpilot.core.auth import Secrets  # noqa: TC001 - needed for __init__
+
+if TYPE_CHECKING:
+    from pathlib import Path
 from accountpilot.core.plugin import AccountPilotPlugin
 from accountpilot.plugins.mail.config import (
     MailAccountConfig,
@@ -128,7 +131,18 @@ class MailPlugin(AccountPilotPlugin):
         await self.sync_once(account_id)
         await self._mark_backfilled(account_id)
 
-    async def sync_once(self, account_id: int) -> None:
+    async def sync_once(
+        self,
+        account_id: int,
+        *,
+        db_path: Path | None = None,  # noqa: ARG002 — storage injected via __init__
+    ) -> int:
+        """Sync INBOX once for the given account.
+
+        Returns the number of NEW messages written this invocation.
+        ``db_path`` is accepted for API symmetry with the CLI contract but
+        is unused — storage was injected at construction time.
+        """
         account = await self._resolve_account(account_id)
         imap = self._imap_factory(account)
         try:
@@ -159,6 +173,7 @@ class MailPlugin(AccountPilotPlugin):
             raise
         finally:
             await imap.disconnect("INBOX")
+        return result.inserted
 
     async def daemon(self, account_id: int) -> None:
         """Polling-style daemon: sync_once every idle_timeout. SP2 swaps to IDLE."""
