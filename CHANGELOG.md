@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] — 2026-05-04 (AP-SP4)
+
+### Added
+- **Publisher-bundled OAuth client credentials.** End users no longer
+  need to register their own GCP / Azure apps to use Mail. The wheel
+  ships `accountpilot/oauth_clients/{google,microsoft}.json` with
+  AccountPilot's published OAuth Desktop client (Google) and
+  multi-tenant Public Client (Microsoft, authority `common`).
+  `accountpilot oauth login google <id>` now opens the standard Google
+  consent screen against AccountPilot's app — no Cloud Console, no JSON
+  download, no manual config. Same for Microsoft: any work, school, or
+  personal MS account works without touching Azure.
+  Power-user override is preserved: drop a custom
+  `oauth_clients/{google,microsoft}.json` under `$ACCOUNTPILOT_CONFIG_DIR`
+  and AccountPilot prefers it over the bundled credentials.
+  Until Google verifies the OAuth consent screen for the
+  `https://mail.google.com/` scope, end users see the standard
+  "unverified app" warning they can click through. Verification is
+  async (weeks).
+
+### Changed
+- `oauth_cmd._load_client_config(provider, config_dir)` is the new
+  resolver. User file beats bundled. Documentation-only keys (anything
+  starting with `_`) are stripped before passing to the OAuth flow.
+- Pre-release builds ship bundled JSONs containing
+  `REPLACE_BEFORE_RELEASE` placeholders; `_has_unfilled_placeholder`
+  fails-fast at login time with a clear message instead of producing a
+  confusing OAuth round-trip with a literal placeholder client_id.
+
 ## [0.1.2] — 2026-05-04 (AP-SP4)
 
 ### Fixed

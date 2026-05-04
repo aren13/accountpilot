@@ -19,7 +19,9 @@
 from __future__ import annotations
 
 import json
+from importlib import resources
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -28,6 +30,61 @@ from accountpilot.core.oauth import flow as oauth_flow
 
 _GOOGLE_SCOPES = ["https://mail.google.com/"]
 _MICROSOFT_SCOPES = ["https://outlook.office.com/IMAP.AccessAsUser.All"]
+
+
+def _load_client_config(provider: str, config_dir: Path) -> dict[str, Any]:
+    """Resolve an OAuth client config for *provider*.
+
+    Order:
+      1. ``$ACCOUNTPILOT_CONFIG_DIR/oauth_clients/<provider>.json`` —
+         explicit user override (power users with their own GCP / Azure
+         app registration).
+      2. The bundled ``accountpilot.oauth_clients.<provider>.json`` —
+         the AccountPilot-published credentials. End users never need to
+         set anything up; they just see the standard provider consent
+         screen on ``accountpilot oauth login``.
+
+    The bundled JSONs are package data; see pyproject.toml's
+    ``[tool.hatch.build.targets.wheel.force-include]``.
+    """
+    user_path = config_dir / "oauth_clients" / f"{provider}.json"
+    if user_path.exists():
+        return _strip_meta(json.loads(user_path.read_text()))
+    raw = (
+        resources.files("accountpilot.oauth_clients")
+        .joinpath(f"{provider}.json")
+        .read_text(encoding="utf-8")
+    )
+    cfg = _strip_meta(json.loads(raw))
+    if _has_unfilled_placeholder(cfg):
+        raise click.UsageError(
+            f"bundled oauth_clients/{provider}.json contains unreplaced "
+            f"placeholders. This AccountPilot build is missing publisher "
+            f"OAuth credentials. Drop a working {provider}.json at {user_path} "
+            f"to override, or upgrade to a release that ships real bundled "
+            f"credentials."
+        )
+    return cfg
+
+
+def _strip_meta(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Drop documentation-only keys (anything starting with '_')."""
+    return {k: v for k, v in cfg.items() if not k.startswith("_")}
+
+
+def _has_unfilled_placeholder(cfg: dict[str, Any]) -> bool:
+    """Check whether the bundled JSON still contains REPLACE_BEFORE_RELEASE."""
+
+    def walk(value: object) -> bool:
+        if isinstance(value, str):
+            return value == "REPLACE_BEFORE_RELEASE"
+        if isinstance(value, dict):
+            return any(walk(v) for v in value.values())
+        if isinstance(value, list):
+            return any(walk(v) for v in value)
+        return False
+
+    return walk(cfg)
 
 
 @click.group("oauth")
@@ -56,14 +113,7 @@ def login_group() -> None:
 )
 def login_google(account_id: int, config_dir: Path, secrets_root: Path) -> None:
     """Run Google OAuth Desktop flow and persist refresh token."""
-    client_path = config_dir / "oauth_clients" / "google.json"
-    if not client_path.exists():
-        raise click.UsageError(
-            f"missing oauth_clients/google.json at {client_path}\n"
-            f"Download an OAuth Desktop client JSON from Google Cloud "
-            f"Console and save it there."
-        )
-    client_config = json.loads(client_path.read_text())
+    client_config = _load_client_config("google", config_dir)
     payload = oauth_flow.google_interactive_login(
         client_config,
         scopes=_GOOGLE_SCOPES,
@@ -95,14 +145,7 @@ def login_microsoft(
     secrets_root: Path,
 ) -> None:
     """Run Microsoft msal interactive flow and persist refresh token."""
-    client_path = config_dir / "oauth_clients" / "microsoft.json"
-    if not client_path.exists():
-        raise click.UsageError(
-            f"missing oauth_clients/microsoft.json at {client_path}\n"
-            f"Create it manually with the client_id + authority from your "
-            f"Azure AD app registration."
-        )
-    client_config = json.loads(client_path.read_text())
+    client_config = _load_client_config("microsoft", config_dir)
     payload = oauth_flow.microsoft_interactive_login(
         client_id=client_config["client_id"],
         authority=client_config["authority"],

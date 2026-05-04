@@ -1,0 +1,12 @@
+{
+  "_publisher": "AccountPilot",
+  "_note": "Bundled Google OAuth Desktop client credentials. Per Google's OAuth2 docs, the client_secret for an installed-app client is not actually treated as secret (https://developers.google.com/identity/protocols/oauth2#installed). End users get the standard Google consent screen and never need to touch Cloud Console. To use a different client, save your own google.json under $ACCOUNTPILOT_CONFIG_DIR/oauth_clients/google.json and AccountPilot will prefer it.",
+  "installed": {
+    "client_id": "929484163131-gbg1vr15f9jgo85jpdeh4v0dnhkqna3d.apps.googleusercontent.com",
+    "client_secret": "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",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "redirect_uris": ["http://localhost"]
+  }
+}
