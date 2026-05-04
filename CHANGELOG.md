@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] — 2026-05-04 (AP-SP4)
+
+### Fixed
+- **iMessage daemon: helper FDA grant is now actually checked under
+  launchd.** `helper_client.iter_records` previously spawned the signed
+  helper via `subprocess.Popen`, so macOS attributed all TCC checks to
+  the parent (Python) — meaning the helper's own Full Disk Access grant
+  was ignored and the daemon hit `EACCES` even when the helper was
+  granted FDA. The whole point of the signed helper was to decouple FDA
+  from Python's cdhash, but without disclaim that decoupling never
+  happened. The new spawn primitive calls
+  `responsibility_spawnattrs_setdisclaim(1)` via `posix_spawn`, making
+  the helper its own TCC responsible process. Falls back to
+  `subprocess.Popen` on Linux/Windows or when the env var
+  `ACCOUNTPILOT_DISABLE_DISCLAIM=1` is set.
+  After upgrading, users still need to grant FDA to
+  `accountpilot-fda-helper` once (System Settings → Privacy & Security
+  → Full Disk Access). The grant then survives all future Python and
+  AccountPilot upgrades, as originally intended.
+
 ## [0.1.1] — 2026-05-04 (AP-SP4)
 
 ### Added
