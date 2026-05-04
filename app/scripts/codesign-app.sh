@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Codesign every Mach-O inside the .app bundle, depth-first, then the
+# outer bundle. Required because --deep is unreliable for nested
+# Python.framework + Helpers/.
+
+set -euo pipefail
+
+if [[ -z "${APP_BUNDLE:-}" ]]; then
+    echo "error: APP_BUNDLE env var required" >&2
+    exit 64
+fi
+: "${APPLE_DEV_ID:=Developer ID Application: FAZLA GIDA ANONIM SIRKETI (P2R7PD8VGY)}"
+
+ENT="$(pwd)/app/AccountPilot/AccountPilot.entitlements"
+HELPER_ENT="$(pwd)/helpers/fda-helper/helper.entitlements"
+
+# 1. Sign every Mach-O inside Frameworks/Python.framework
+echo "==> signing Python.framework Mach-Os"
+find "$APP_BUNDLE/Contents/Frameworks/Python.framework" \
+     -type f \( -name "*.dylib" -o -name "*.so" -o -perm -u+x \) \
+     -print0 | while IFS= read -r -d '' mach; do
+    # skip Python files, hash files, etc. by checking magic
+    head -c 4 "$mach" | xxd -p | grep -qE '^(cffaedfe|cefaedfe|feedface|feedfacf)' || continue
+    codesign --force --sign "$APPLE_DEV_ID" --options runtime --timestamp "$mach"
+done
+
+# 2. Sign the helper with its own entitlements
+echo "==> signing FDA helper"
+codesign --force --sign "$APPLE_DEV_ID" \
+    --options runtime \
+    --entitlements "$HELPER_ENT" \
+    --identifier "com.accountpilot.fda-helper" \
+    --timestamp \
+    "$APP_BUNDLE/Contents/Helpers/accountpilot-fda-helper"
+
+# 3. Sign the outer bundle with the app's entitlements
+echo "==> signing AccountPilot.app"
+codesign --force --sign "$APPLE_DEV_ID" \
+    --options runtime \
+    --entitlements "$ENT" \
+    --identifier "com.accountpilot.app" \
+    --timestamp \
+    "$APP_BUNDLE"
+
+# 4. Verify
+echo "==> verifying signature"
+codesign --verify --verbose=2 "$APP_BUNDLE"
+codesign --verify --verbose=2 "$APP_BUNDLE/Contents/Helpers/accountpilot-fda-helper"
+
+echo "==> codesign: done"
