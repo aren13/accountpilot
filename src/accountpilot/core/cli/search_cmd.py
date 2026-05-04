@@ -19,13 +19,22 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import click
 
 from accountpilot.core import paths
 from accountpilot.core.db.connection import open_db
+
+
+def _emit_envelope(
+    *, data: Any | None = None, error: dict[str, str] | None = None
+) -> None:
+    payload = {"ok": error is None, "data": data, "error": error}
+    click.echo(json.dumps(payload))
 
 
 def _format_local(iso_ts: str) -> str:
@@ -50,8 +59,52 @@ def _format_local(iso_ts: str) -> str:
     default=paths.db_path,
     show_default="$ACCOUNTPILOT_DATA_DIR/accountpilot.db",
 )
-def search_cmd(query: str, limit: int, db_path: Path) -> None:
+@click.option("--json", "json_out", is_flag=True)
+def search_cmd(query: str, limit: int, db_path: Path, json_out: bool) -> None:
     """Full-text search over messages."""
+
+    if json_out:
+
+        async def _run_json() -> None:
+            async with (
+                open_db(db_path) as db,
+                db.execute(
+                    """
+                    SELECT m.id, m.source, m.account_id, m.sent_at,
+                           COALESCE(ed.subject, '') AS subject,
+                           SUBSTR(m.body_text, 1, 160) AS snippet,
+                           bm25(messages_fts) AS score
+                    FROM messages m
+                    JOIN messages_fts f ON f.rowid = m.id
+                    LEFT JOIN email_details ed ON ed.message_id = m.id
+                    WHERE messages_fts MATCH ?
+                    ORDER BY score
+                    LIMIT ?
+                    """,
+                    (query, limit),
+                ) as cur,
+            ):
+                rows = await cur.fetchall()
+            _emit_envelope(
+                data={
+                    "query": query,
+                    "results": [
+                        {
+                            "id": r["id"],
+                            "source": r["source"],
+                            "account_id": r["account_id"],
+                            "sent_at": r["sent_at"],
+                            "subject": r["subject"],
+                            "snippet": r["snippet"],
+                            "score": r["score"],
+                        }
+                        for r in rows
+                    ],
+                }
+            )
+
+        asyncio.run(_run_json())
+        return
 
     async def _run() -> None:
         async with (
