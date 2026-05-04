@@ -4,27 +4,26 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>AccountPilot</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.accountpilot.app</string>
+	<string>com.accountpilot.SyncService</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>AccountPilot</string>
+	<string>AccountPilotSyncService</string>
 	<key>CFBundlePackageType</key>
-	<string>APPL</string>
+	<string>XPC!</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.2.0</string>
+	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>LSMinimumSystemVersion</key>
-	<string>13.0</string>
-	<key>LSUIElement</key>
-	<true/>
-	<key>NSHumanReadableCopyright</key>
-	<string>Copyright (C) 2026 Hasan Arda Eren. AGPL-3.0-or-later.</string>
+	<key>XPCService</key>
+	<dict>
+		<key>RunLoopType</key>
+		<string>dispatch_main</string>
+		<key>ServiceType</key>
+		<string>Application</string>
+	</dict>
 </dict>
 </plist>

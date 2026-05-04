@@ -22,6 +22,9 @@ targets:
     platform: macOS
     sources:
       - path: AccountPilot
+        excludes:
+          - "Shared/**/*"
+      - path: AccountPilot/Shared
     resources:
       - path: AccountPilot/Assets.xcassets
     info:
@@ -33,18 +36,40 @@ targets:
         CFBundleShortVersionString: "0.2.0"
         CFBundleVersion: "1"
         LSMinimumSystemVersion: "13.0"
-        LSUIElement: false
+        LSUIElement: true
         NSHumanReadableCopyright: "Copyright (C) 2026 Hasan Arda Eren. AGPL-3.0-or-later."
     entitlements:
       path: AccountPilot/AccountPilot.entitlements
       properties:
-        com.apple.security.app-sandbox: false       # FDA helper requires non-sandboxed parent
+        com.apple.security.app-sandbox: false
         com.apple.security.cs.allow-jit: false
         com.apple.security.cs.allow-unsigned-executable-memory: false
-        # Embedded Python loads .so files signed by PyPI publishers (pydantic,
-        # cryptography, …) with their own Team IDs. Default library validation
-        # rejects these as "different Team ID". Disable so dyld trusts any
-        # signed .dylib/.so loaded into the process.
+        com.apple.security.cs.disable-library-validation: true
+    dependencies:
+      - target: AccountPilotXPC
+        copy:
+          destination: plugins
+          embed: true
+
+  AccountPilotXPC:
+    type: xpc-service
+    platform: macOS
+    sources:
+      - path: AccountPilotXPC
+      - path: AccountPilot/Shared
+    info:
+      path: AccountPilotXPC/Info.plist
+      properties:
+        CFBundleIdentifier: com.accountpilot.SyncService
+        CFBundleName: AccountPilotSyncService
+        CFBundlePackageType: XPC!
+        XPCService:
+          ServiceType: Application
+          RunLoopType: dispatch_main
+    entitlements:
+      path: AccountPilotXPC/SyncServiceXPC.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
         com.apple.security.cs.disable-library-validation: true
 
   AccountPilotTests:
