@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,12 @@ import click
 
 from accountpilot.core import paths
 from accountpilot.core.db.connection import open_db
+
+
+def _emit_envelope(*, data: Any | None = None, error: dict[str, str] | None = None) -> None:
+    """Emit the standard JSON envelope to stdout. One call per CLI invocation."""
+    payload = {"ok": error is None, "data": data, "error": error}
+    click.echo(json.dumps(payload))
 
 
 @click.group("accounts")
@@ -44,19 +51,39 @@ def _db_option(f: Any) -> Any:
 
 
 @accounts_group.command("list")
+@click.option("--json", "json_out", is_flag=True, help="Emit machine-readable JSON.")
 @_db_option
-def accounts_list(db_path: Path) -> None:
+def accounts_list(db_path: Path, json_out: bool) -> None:
     async def _run() -> None:
         async with (
             open_db(db_path) as db,
             db.execute(
                 "SELECT a.id, a.source, a.account_identifier, a.enabled, "
-                "p.name || COALESCE(' ' || p.surname, '') AS owner_name "
+                "a.owner_id, p.name || COALESCE(' ' || p.surname, '') AS owner_name "
                 "FROM accounts a JOIN people p ON p.id=a.owner_id "
                 "ORDER BY a.id"
             ) as cur,
         ):
             rows = await cur.fetchall()
+
+        if json_out:
+            _emit_envelope(
+                data={
+                    "accounts": [
+                        {
+                            "id": r["id"],
+                            "source": r["source"],
+                            "identifier": r["account_identifier"],
+                            "enabled": bool(r["enabled"]),
+                            "owner_id": r["owner_id"],
+                            "owner_name": r["owner_name"],
+                        }
+                        for r in rows
+                    ]
+                }
+            )
+            return
+
         for r in rows:
             state = "[on]" if r["enabled"] else "[off]"
             click.echo(
