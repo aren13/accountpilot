@@ -10,7 +10,7 @@
 import Foundation
 import SQLite3
 
-let HELPER_VERSION = "0.1.0"
+let HELPER_VERSION = "0.1.1"
 let PROTOCOL_VERSION = 1
 
 // MARK: - Error envelope

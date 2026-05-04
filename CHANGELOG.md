@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] — 2026-05-04 (AP-SP4)
+
+### Fixed
+- **Helper FDA grant now survives `brew upgrade`.** The signed helper
+  Mach-O now embeds an `Info.plist` (CFBundleIdentifier
+  `com.accountpilot.fda-helper`) into the `__TEXT,__info_plist`
+  section, so macOS TCC keys the Full Disk Access grant by code-signing
+  requirement (TeamID + bundle id) instead of by absolute path. Before
+  this, every brew upgrade moved the helper into a fresh
+  `Cellar/<version>/bin` path and TCC required a re-grant — defeating
+  the entire point of the signed-helper architecture.
+  Requires bumping the bundled helper to **fda-helper-v0.1.1**. After
+  upgrading to 0.1.4 from 0.1.2/0.1.3, the user grants FDA one more
+  time (because the cdhash changed in 0.1.1) and from then on the
+  grant is permanent across all future Python and AccountPilot
+  upgrades.
+- **`accountpilot service install` no longer hard-codes the wrong
+  Python interpreter into the launchd / systemd unit.** Previously,
+  service install used `shutil.which("accountpilot")` which picks up
+  whichever `accountpilot` is first on `$PATH` — frequently a stale
+  anaconda or pyenv install, not the brew-managed one the user just
+  invoked. The daemon then ran under that other interpreter, often
+  with broken plugin discovery or missing FDA. New default resolves
+  the script alongside `sys.executable`, so the daemon always runs
+  under the same install that registered it. New `--bin` option lets
+  power users override.
+
+### Helper
+- **fda-helper-v0.1.1.** Embeds `Info.plist` in the Mach-O. Same
+  source-level behavior as 0.1.0; the only change is the linker flag
+  `-sectcreate __TEXT __info_plist Info.plist` and a `CFBundleVersion`
+  bump. Re-signed + re-notarized under the same Developer ID
+  (FAZLA GIDA ANONIM SIRKETI, team P2R7PD8VGY).
+
 ## [0.1.3] — 2026-05-04 (AP-SP4)
 
 ### Added

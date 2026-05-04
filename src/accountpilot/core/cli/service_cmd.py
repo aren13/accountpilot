@@ -34,6 +34,7 @@ import os
 import platform
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import click
@@ -51,6 +52,39 @@ _jinja_env = Environment(
 )
 
 
+def _resolve_accountpilot_bin(override: Path | None) -> str:
+    """Return the absolute path to the `accountpilot` console script.
+
+    Order:
+      1. Explicit ``--bin`` override (validated by Click before we see it).
+      2. The script alongside the currently-running interpreter
+         (``Path(sys.executable).parent / "accountpilot"``). This is the
+         RIGHT default — if the user invoked ``accountpilot service install``
+         from a brew install, sys.executable is brew's Python, and the
+         daemon should run under the same install. PATH-based lookup
+         (``shutil.which``) is wrong because it can resolve to a different
+         install when the user has multiple Python environments (anaconda,
+         pyenv, system, etc.).
+      3. ``shutil.which("accountpilot")`` as a last-resort fallback for
+         exotic deployments where the script lives outside the interpreter
+         directory.
+    """
+    if override is not None:
+        return str(override.resolve())
+    candidate = Path(sys.executable).parent / "accountpilot"
+    if candidate.is_file() and os.access(candidate, os.X_OK):
+        return str(candidate)
+    on_path = shutil.which("accountpilot")
+    if on_path:
+        return on_path
+    raise click.UsageError(
+        f"couldn't locate the `accountpilot` console script. Tried "
+        f"{candidate}, then $PATH. Install the package "
+        f"(`pip install accountpilot` or `brew install aren13/tap/accountpilot`) "
+        f"or pass `--bin /absolute/path/to/accountpilot`."
+    )
+
+
 @click.group("service")
 def service_group() -> None:
     """Install/uninstall/status the AccountPilot daemon supervisor."""
@@ -63,13 +97,23 @@ def service_group() -> None:
     is_flag=True,
     help="Print the rendered service file but don't write or bootstrap.",
 )
-def install(plugin: str, dry_run: bool) -> None:
+@click.option(
+    "--bin",
+    "bin_override",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+    help="Override the accountpilot binary path baked into the service file. "
+    "Defaults to the binary alongside the currently-running Python "
+    "(sys.executable). Use this only when you need launchd/systemd to run "
+    "a different install than the one you invoked `service install` from.",
+)
+def install(plugin: str, dry_run: bool, bin_override: Path | None) -> None:
     """Render and bootstrap the launchd/systemd job for PLUGIN."""
     sysname = platform.system()
     if sysname == "Darwin":
-        _install_launchd(plugin, dry_run=dry_run)
+        _install_launchd(plugin, dry_run=dry_run, bin_override=bin_override)
     elif sysname == "Linux":
-        _install_systemd(plugin, dry_run=dry_run)
+        _install_systemd(plugin, dry_run=dry_run, bin_override=bin_override)
     else:
         raise click.UsageError(f"unsupported platform: {sysname}")
 
@@ -102,13 +146,10 @@ def status() -> None:
 # ─── macOS launchd ─────────────────────────────────────────────────
 
 
-def _install_launchd(plugin: str, *, dry_run: bool) -> None:
-    accountpilot_bin = shutil.which("accountpilot")
-    if not accountpilot_bin:
-        raise click.UsageError(
-            "couldn't find `accountpilot` on PATH — install the package "
-            "first (e.g. pip install accountpilot)"
-        )
+def _install_launchd(
+    plugin: str, *, dry_run: bool, bin_override: Path | None = None
+) -> None:
+    accountpilot_bin = _resolve_accountpilot_bin(bin_override)
     rendered = _jinja_env.get_template("launchd.plist.j2").render(
         plugin=plugin,
         accountpilot_bin=accountpilot_bin,
@@ -206,13 +247,10 @@ def _systemd_user_dir() -> Path:
     return base / "systemd" / "user"
 
 
-def _install_systemd(plugin: str, *, dry_run: bool) -> None:
-    accountpilot_bin = shutil.which("accountpilot")
-    if not accountpilot_bin:
-        raise click.UsageError(
-            "couldn't find `accountpilot` on PATH — install the package "
-            "first (e.g. pip install accountpilot)"
-        )
+def _install_systemd(
+    plugin: str, *, dry_run: bool, bin_override: Path | None = None
+) -> None:
+    accountpilot_bin = _resolve_accountpilot_bin(bin_override)
     rendered = _jinja_env.get_template("systemd.service.j2").render(
         plugin=plugin,
         accountpilot_bin=accountpilot_bin,
