@@ -9,6 +9,6 @@
 	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
 	<false/>
 	<key>com.apple.security.cs.disable-library-validation</key>
-	<false/>
+	<true/>
 </dict>
 </plist>

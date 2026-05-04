@@ -38,10 +38,14 @@ targets:
     entitlements:
       path: AccountPilot/AccountPilot.entitlements
       properties:
-        com.apple.security.app-sandbox: false
+        com.apple.security.app-sandbox: false       # FDA helper requires non-sandboxed parent
         com.apple.security.cs.allow-jit: false
         com.apple.security.cs.allow-unsigned-executable-memory: false
-        com.apple.security.cs.disable-library-validation: false
+        # Embedded Python loads .so files signed by PyPI publishers (pydantic,
+        # cryptography, …) with their own Team IDs. Default library validation
+        # rejects these as "different Team ID". Disable so dyld trusts any
+        # signed .dylib/.so loaded into the process.
+        com.apple.security.cs.disable-library-validation: true
 
   AccountPilotTests:
     type: bundle.unit-test
