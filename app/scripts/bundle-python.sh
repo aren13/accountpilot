@@ -66,4 +66,21 @@ PYTHONPATH="$SITE_PACKAGES" "$PYTHON_BIN" -c \
     "import accountpilot; print('accountpilot OK from', accountpilot.__file__)"
 PYTHONPATH="$SITE_PACKAGES" "$PYTHON_BIN" -m accountpilot.cli --version
 
+echo "==> writing public CLI shim at Contents/Resources/bin/accountpilot"
+SHIM_DIR="$APP_BUNDLE/Contents/Resources/bin"
+mkdir -p "$SHIM_DIR"
+cat > "$SHIM_DIR/accountpilot" <<'SHIM'
+#!/bin/bash
+# Public CLI entry. Agents install /usr/local/bin/accountpilot as a
+# symlink to this file. Resolves the bundle root at runtime so the .app
+# is fully relocatable.
+set -e
+SHIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUNDLE_ROOT="$(cd "$SHIM_DIR/../../.." && pwd)"
+export PYTHONPATH="$BUNDLE_ROOT/Contents/Resources/python/site-packages"
+exec "$BUNDLE_ROOT/Contents/Frameworks/Python.framework/bin/python3" \
+    -m accountpilot.cli "$@"
+SHIM
+chmod +x "$SHIM_DIR/accountpilot"
+
 echo "==> bundle-python: done"
