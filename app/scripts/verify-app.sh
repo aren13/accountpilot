@@ -21,7 +21,8 @@ for path in \
     "Contents/Resources/python/site-packages/accountpilot/cli.py" \
     "Contents/Resources/bin/accountpilot" \
     "Contents/Helpers/accountpilot-fda-helper" \
-    "Contents/Info.plist"; do
+    "Contents/Info.plist" \
+    "Contents/PlugIns/AccountPilotXPC.xpc/Contents/MacOS/AccountPilotXPC"; do
     test -e "$APP_BUNDLE/$path" || fail "missing $path"
     pass "exists $path"
 done
@@ -42,6 +43,14 @@ echo "$helper_codesign" | grep -q "TeamIdentifier=P2R7PD8VGY" \
 echo "$helper_codesign" | grep -q "Identifier=com.accountpilot.fda-helper" \
     || fail "helper bundle id wrong"
 pass "helper signing identity correct"
+
+# 3b. XPC service signing identity
+xpc_codesign="$(codesign -dv "$APP_BUNDLE/Contents/PlugIns/AccountPilotXPC.xpc" 2>&1)"
+echo "$xpc_codesign" | grep -q "TeamIdentifier=P2R7PD8VGY" \
+    || fail "XPC service missing P2R7PD8VGY team"
+echo "$xpc_codesign" | grep -q "Identifier=com.accountpilot.SyncService" \
+    || fail "XPC service bundle id wrong"
+pass "XPC service signing identity correct"
 
 # 4. App bundle id
 app_codesign="$(codesign -dv "$APP_BUNDLE" 2>&1)"
