@@ -27,19 +27,25 @@ for path in \
 done
 
 # 2. Codesign of outer bundle
-codesign --verify --verbose=2 "$APP_BUNDLE" 2>&1 | grep -q "valid on disk" \
+# Buffer output before grep: with `set -o pipefail`, `grep -q` closes the
+# pipe on first match and codesign exits on SIGPIPE (non-zero), tripping
+# pipefail and failing the check despite the signature being valid.
+codesign_outer="$(codesign --verify --verbose=2 "$APP_BUNDLE" 2>&1)"
+echo "$codesign_outer" | grep -q "valid on disk" \
     || fail "outer bundle codesign invalid"
 pass "outer bundle signature valid"
 
 # 3. Helper signing identity unchanged
-codesign -dv "$APP_BUNDLE/Contents/Helpers/accountpilot-fda-helper" 2>&1 \
-    | grep -q "TeamIdentifier=P2R7PD8VGY" || fail "helper missing P2R7PD8VGY team"
-codesign -dv "$APP_BUNDLE/Contents/Helpers/accountpilot-fda-helper" 2>&1 \
-    | grep -q "Identifier=com.accountpilot.fda-helper" || fail "helper bundle id wrong"
+helper_codesign="$(codesign -dv "$APP_BUNDLE/Contents/Helpers/accountpilot-fda-helper" 2>&1)"
+echo "$helper_codesign" | grep -q "TeamIdentifier=P2R7PD8VGY" \
+    || fail "helper missing P2R7PD8VGY team"
+echo "$helper_codesign" | grep -q "Identifier=com.accountpilot.fda-helper" \
+    || fail "helper bundle id wrong"
 pass "helper signing identity correct"
 
 # 4. App bundle id
-codesign -dv "$APP_BUNDLE" 2>&1 | grep -q "Identifier=com.accountpilot.app" \
+app_codesign="$(codesign -dv "$APP_BUNDLE" 2>&1)"
+echo "$app_codesign" | grep -q "Identifier=com.accountpilot.app" \
     || fail "app bundle id should be com.accountpilot.app"
 pass "app bundle id correct"
 
@@ -49,13 +55,15 @@ xcrun stapler validate "$APP_BUNDLE" >/dev/null 2>&1 \
 pass "notarization stapled"
 
 # 6. Public CLI works
-"$APP_BUNDLE/Contents/Resources/bin/accountpilot" --version | grep -q "0.2.0" \
-    || fail "bundled CLI does not report 0.2.0"
+cli_version="$("$APP_BUNDLE/Contents/Resources/bin/accountpilot" --version)"
+echo "$cli_version" | grep -q "0.2.0" \
+    || fail "bundled CLI does not report 0.2.0 (got: $cli_version)"
 pass "CLI reports correct version"
 
 # 7. FDA helper runs (returns EACCES without grant — that's expected)
-"$APP_BUNDLE/Contents/Helpers/accountpilot-fda-helper" --version | grep -q "0.1.1" \
-    || fail "FDA helper does not report 0.1.1"
+helper_version="$("$APP_BUNDLE/Contents/Helpers/accountpilot-fda-helper" --version)"
+echo "$helper_version" | grep -q "0.1.1" \
+    || fail "FDA helper does not report 0.1.1 (got: $helper_version)"
 pass "FDA helper runs and reports 0.1.1"
 
 echo "==> all verification passed"
