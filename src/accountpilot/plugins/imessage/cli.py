@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import (
     AsyncIterator,  # noqa: TC003 (used at runtime in async context manager return type)
 )
@@ -35,6 +36,14 @@ from accountpilot.core.config import load_config
 from accountpilot.core.db.connection import open_db
 from accountpilot.core.storage import Storage
 from accountpilot.plugins.imessage.plugin import IMessagePlugin
+
+
+def _emit_envelope(
+    *, data: Any | None = None, error: dict[str, str] | None = None
+) -> None:
+    """Emit the standard JSON envelope to stdout. One call per CLI invocation."""
+    payload = {"ok": error is None, "data": data, "error": error}
+    click.echo(json.dumps(payload))
 
 
 @click.group("imessage")
@@ -176,3 +185,46 @@ def imessage_daemon(
             await asyncio.gather(*(plugin.daemon(aid) for aid in rows))
 
     asyncio.run(_run())
+
+
+@imessage_group.command("probe-fda")
+@click.option("--json", "json_out", is_flag=True, help="Emit JSON envelope to stdout.")
+def probe_fda(json_out: bool) -> None:
+    """Probe whether the FDA helper can read chat.db.
+
+    Returns ``{ok: true, data: {granted: bool, reason: str, message: str}}``
+    regardless of grant state — caller distinguishes via ``data.granted``.
+    """
+    from accountpilot.plugins.imessage import helper_client
+
+    try:
+        helper_client.find_helper_binary()
+    except helper_client.HelperNotInstalledError as exc:
+        if json_out:
+            _emit_envelope(
+                data={
+                    "granted": False,
+                    "reason": "HELPER_MISSING",
+                    "message": str(exc),
+                }
+            )
+            return
+        click.echo(f"helper not installed: {exc}")
+        return
+
+    try:
+        # Drain a no-op query: since_ns far in the future → 0 records returned.
+        for _ in helper_client.iter_records(since_ns=1 << 62):
+            break
+        granted, reason, message = True, "OK", "helper can read chat.db"
+    except helper_client.HelperPermissionError:
+        granted, reason, message = False, "FDA_DENIED", "Full Disk Access not granted"
+    except Exception as exc:  # noqa: BLE001
+        granted, reason, message = False, "PROBE_FAILED", str(exc)
+
+    if json_out:
+        _emit_envelope(
+            data={"granted": granted, "reason": reason, "message": message}
+        )
+        return
+    click.echo(f"FDA probe: granted={granted} reason={reason} {message}")

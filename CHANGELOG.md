@@ -30,6 +30,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a stable `{"ok": bool, "data": ..., "error": ...}` envelope so
   downstream agents (and the SwiftUI app) get a single contract
   for both happy and error paths.
+- **FDA wizard.** First launch on a Mac without Full Disk Access for
+  the helper now opens a guided wizard that deep-links into System
+  Settings → Privacy & Security → Full Disk Access and auto-advances
+  within ~1 second of the grant taking effect. "Skip for now" path
+  lets the user proceed with mail-only sync.
+- **Status-bar app + XPC sync.** AccountPilot is now a menu-bar app
+  (LSUIElement). An embedded XPC service `com.accountpilot.SyncService`
+  runs one timer per enabled account, calling
+  `accountpilot sync-once {mail,imessage} <id> --json`. Status bar
+  shows last-sync per account and offers Sync Now / Pause Sync /
+  Open AccountPilot…. Settings sheet has a master "Background sync
+  enabled" toggle that actually starts/stops the XPC service.
+- **CLI: `accountpilot status --json`,
+  `accountpilot sync-once {mail,imessage} <id> --json`,
+  `accountpilot imessage probe-fda --json`.** Plugins'
+  `sync_once` now returns the count of new messages written.
 
 ## [0.1.4] — 2026-05-04 (AP-SP4)
 

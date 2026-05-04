@@ -35,6 +35,30 @@ find "$APP_BUNDLE/Contents/Resources/python" \
     codesign --force --sign "$APPLE_DEV_ID" --options runtime --timestamp "$mach"
 done
 
+# 1.5: Sign the XPC service bundle (Mach-O inside, then outer .xpc)
+XPC_BUNDLE="$APP_BUNDLE/Contents/PlugIns/AccountPilotXPC.xpc"
+if [ -d "$XPC_BUNDLE" ]; then
+    echo "==> signing XPC service Mach-O"
+    XPC_BIN="$XPC_BUNDLE/Contents/MacOS/AccountPilotXPC"
+    if [ -f "$XPC_BIN" ]; then
+        codesign --force --sign "$APPLE_DEV_ID" --options runtime --timestamp "$XPC_BIN"
+    else
+        echo "warning: $XPC_BIN missing, skipping XPC binary signing" >&2
+    fi
+    echo "==> signing XPC service bundle"
+    XPC_ENT="$(pwd)/app/AccountPilotXPC/SyncServiceXPC.entitlements"
+    if [ ! -f "$XPC_ENT" ]; then
+        echo "error: XPC entitlements not found at $XPC_ENT — run 'cd app && xcodegen generate' first" >&2
+        exit 1
+    fi
+    codesign --force --sign "$APPLE_DEV_ID" \
+        --options runtime \
+        --entitlements "$XPC_ENT" \
+        --identifier "com.accountpilot.SyncService" \
+        --timestamp \
+        "$XPC_BUNDLE"
+fi
+
 # 2. Sign the helper with its own entitlements
 echo "==> signing FDA helper"
 codesign --force --sign "$APPLE_DEV_ID" \

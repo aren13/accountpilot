@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path  # noqa: TC003 (used at runtime in function signature)
+from unittest.mock import patch
 
 import pytest  # noqa: TC002 (MonkeyPatch used at runtime in fixture annotations)
 from click.testing import CliRunner
@@ -176,3 +178,72 @@ def test_imessage_daemon_without_account_id_supervises_all_enabled(
     )
     assert result.exit_code == 0, result.output
     assert sorted(seen) == [1, 2]
+
+
+# ─── probe-fda tests (Task 9) ────────────────────────────────────────────────
+
+
+def test_probe_fda_helper_missing() -> None:
+    """HELPER_MISSING when find_helper_binary raises HelperNotInstalledError."""
+    from accountpilot.plugins.imessage import helper_client
+    from accountpilot.plugins.imessage.cli import imessage_group
+
+    with patch.object(
+        helper_client,
+        "find_helper_binary",
+        side_effect=helper_client.HelperNotInstalledError("not in $PATH"),
+    ):
+        runner = CliRunner()
+        result = runner.invoke(imessage_group, ["probe-fda", "--json"])
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["ok"] is True
+    assert payload["data"]["granted"] is False
+    assert payload["data"]["reason"] == "HELPER_MISSING"
+
+
+def test_probe_fda_denied() -> None:
+    """FDA_DENIED when iter_records raises HelperPermissionError."""
+    from accountpilot.plugins.imessage import helper_client
+    from accountpilot.plugins.imessage.cli import imessage_group
+
+    def _raise_permission(*args: object, **kwargs: object) -> None:
+        raise helper_client.HelperPermissionError("FDA denied")
+
+    fake_path = Path("/fake/helper")
+    with (
+        patch.object(helper_client, "find_helper_binary", return_value=fake_path),
+        patch.object(helper_client, "iter_records", _raise_permission),
+    ):
+        runner = CliRunner()
+        result = runner.invoke(imessage_group, ["probe-fda", "--json"])
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["ok"] is True
+    assert payload["data"]["granted"] is False
+    assert payload["data"]["reason"] == "FDA_DENIED"
+
+
+def test_probe_fda_granted() -> None:
+    """OK when iter_records returns an empty iterator (no records, no error)."""
+    from accountpilot.plugins.imessage import helper_client
+    from accountpilot.plugins.imessage.cli import imessage_group
+
+    def _empty_iter(*args: object, **kwargs: object):  # type: ignore[return]
+        return iter([])
+
+    fake_path = Path("/fake/helper")
+    with (
+        patch.object(helper_client, "find_helper_binary", return_value=fake_path),
+        patch.object(helper_client, "iter_records", _empty_iter),
+    ):
+        runner = CliRunner()
+        result = runner.invoke(imessage_group, ["probe-fda", "--json"])
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["ok"] is True
+    assert payload["data"]["granted"] is True
+    assert payload["data"]["reason"] == "OK"

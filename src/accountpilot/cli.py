@@ -38,6 +38,7 @@ from accountpilot.core.cli.search_cmd import search_cmd
 from accountpilot.core.cli.service_cmd import service_group
 from accountpilot.core.cli.setup_cmd import setup_cmd
 from accountpilot.core.cli.status_cmd import status_cmd
+from accountpilot.core.cli.sync_once_cmd import sync_once_group
 from accountpilot.core.plugin import discover_plugins
 
 
@@ -56,6 +57,7 @@ cli.add_command(accounts_group)
 cli.add_command(setup_cmd)
 cli.add_command(oauth_group)
 cli.add_command(service_group)
+cli.add_command(sync_once_group)
 
 
 def _register_plugin_clis() -> None:

@@ -2,59 +2,46 @@ import SwiftUI
 
 struct ContentView: View {
     let migration: ConfigMigration.Result?
+    @ObservedObject var supervisor: SyncSupervisor
 
-    @State private var pythonVersion: String = "loading…"
-    @State private var accountpilotVersion: String = "loading…"
+    @State private var didProbeFDA: Bool = false
+    @State private var fdaGranted: Bool = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            AccountsView()
-            Divider()
-            footer
+        Group {
+            if !didProbeFDA {
+                ProgressView("Checking permissions…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if !fdaGranted {
+                FDAWizardView(onGranted: {
+                    fdaGranted = true
+                })
+            } else {
+                VStack(spacing: 0) {
+                    AccountsView()
+                    Divider()
+                    footer
+                }
+            }
         }
-        .task { await loadVersions() }
+        .task {
+            let result = await FDAProbe.probe()
+            fdaGranted = result.granted
+            didProbeFDA = true
+        }
     }
 
-    @ViewBuilder
     private var footer: some View {
         VStack(spacing: 4) {
             if case .imported(let count) = migration {
                 Text("Imported \(count) account(s) from config.yaml")
-                    .font(.caption)
-                    .foregroundStyle(.green)
-            } else if case .failed(let msg) = migration {
-                Text("Migration failed: \(msg)")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .lineLimit(2)
+                    .font(.caption).foregroundStyle(.green)
             }
-            HStack(spacing: 12) {
-                Text("AccountPilot 0.2.0")
-                Text("·")
-                Text("Python \(pythonVersion)")
-                    .font(.system(.caption, design: .monospaced))
-                Text("·")
-                Text("accountpilot \(accountpilotVersion)")
-                    .font(.system(.caption, design: .monospaced))
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            Text("AccountPilot 0.2.0")
+                .font(.caption).foregroundStyle(.secondary)
         }
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
         .background(.ultraThinMaterial)
-    }
-
-    private func loadVersions() async {
-        if let pv = try? await PythonRuntime.shared.run(
-            ["-c", "import platform; print(platform.python_version())"]
-        ) {
-            pythonVersion = pv.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        if let av = try? await PythonRuntime.shared.run(
-            ["-m", "accountpilot.cli", "--version"]
-        ) {
-            accountpilotVersion = av.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
     }
 }
