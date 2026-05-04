@@ -13,8 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pip. Phase 1 ships the skeleton: a notarized .app that opens and runs the
   bundled CLI. Subsequent phases add account UI, FDA wizard, sync status,
   data viewer, and Sparkle auto-update.
-
-(more entries land per phase)
+- **Account management UI.** SwiftUI accounts list view replaces
+  `config.yaml` as the source of truth. Add Gmail/Outlook accounts
+  via in-app OAuth flow against bundled publisher credentials —
+  no terminal interaction, no YAML editing. Remove deletes the
+  account row, all its messages, and the OAuth secret file.
+- **First-launch config.yaml migration.** Existing 0.1.x installs
+  with `~/Library/Application Support/accountpilot/config.yaml`
+  see all accounts auto-imported on first launch. The YAML is
+  renamed to `config.yaml.imported` once applied so the migration
+  is one-shot.
+- **CLI: `accountpilot accounts add --json`,
+  `accountpilot accounts remove ID --json`,
+  `accountpilot config import --json`,
+  `accountpilot oauth login {google,microsoft} --json`.** All emit
+  a stable `{"ok": bool, "data": ..., "error": ...}` envelope so
+  downstream agents (and the SwiftUI app) get a single contract
+  for both happy and error paths.
 
 ## [0.1.4] — 2026-05-04 (AP-SP4)
 
