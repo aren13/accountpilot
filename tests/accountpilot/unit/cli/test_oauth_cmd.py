@@ -117,8 +117,12 @@ def test_oauth_login_google_errors_when_bundled_has_placeholder(
     )
     # If publisher creds are already filled (post-release build), this
     # path won't trigger and login would actually attempt the real flow
-    # — that's fine, skip in that case.
+    # — that's fine, skip in that case. On headless CI (no browser),
+    # the real flow fails with "could not locate runnable browser" which
+    # is also a "creds were filled, can't probe placeholder path" signal.
     if result.exit_code == 0:
+        return
+    if result.exception is not None and "browser" in str(result.exception).lower():
         return
     assert "unreplaced placeholders" in result.output or "REPLACE" in result.output
 

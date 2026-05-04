@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -26,7 +27,18 @@ from typing import Any
 import click
 
 from accountpilot.core import paths
+from accountpilot.core.cas import CASStore
 from accountpilot.core.db.connection import open_db
+from accountpilot.core.models import Identifier, IdentifierKind
+from accountpilot.core.storage import Storage
+
+
+def _emit_envelope(
+    *, data: Any | None = None, error: dict[str, str] | None = None
+) -> None:
+    """Emit the standard JSON envelope to stdout. One call per CLI invocation."""
+    payload = {"ok": error is None, "data": data, "error": error}
+    click.echo(json.dumps(payload))
 
 
 @click.group("accounts")
@@ -44,19 +56,39 @@ def _db_option(f: Any) -> Any:
 
 
 @accounts_group.command("list")
+@click.option("--json", "json_out", is_flag=True, help="Emit machine-readable JSON.")
 @_db_option
-def accounts_list(db_path: Path) -> None:
+def accounts_list(db_path: Path, json_out: bool) -> None:
     async def _run() -> None:
         async with (
             open_db(db_path) as db,
             db.execute(
                 "SELECT a.id, a.source, a.account_identifier, a.enabled, "
-                "p.name || COALESCE(' ' || p.surname, '') AS owner_name "
+                "a.owner_id, p.name || COALESCE(' ' || p.surname, '') AS owner_name "
                 "FROM accounts a JOIN people p ON p.id=a.owner_id "
                 "ORDER BY a.id"
             ) as cur,
         ):
             rows = await cur.fetchall()
+
+        if json_out:
+            _emit_envelope(
+                data={
+                    "accounts": [
+                        {
+                            "id": r["id"],
+                            "source": r["source"],
+                            "identifier": r["account_identifier"],
+                            "enabled": bool(r["enabled"]),
+                            "owner_id": r["owner_id"],
+                            "owner_name": r["owner_name"],
+                        }
+                        for r in rows
+                    ]
+                }
+            )
+            return
+
         for r in rows:
             state = "[on]" if r["enabled"] else "[off]"
             click.echo(
@@ -65,6 +97,125 @@ def accounts_list(db_path: Path) -> None:
             )
 
     asyncio.run(_run())
+
+
+def _identifier_kind_for_provider(provider: str) -> IdentifierKind:
+    """Map provider → the identifier kind we record on the owner row."""
+    if provider in {"gmail", "outlook", "imap-generic", "imessage"}:
+        return "email"
+    raise click.UsageError(f"unknown provider: {provider}")
+
+
+@accounts_group.command("add")
+@click.option("--json", "json_out", is_flag=True)
+@click.option(
+    "--provider",
+    type=click.Choice(["gmail", "outlook", "imap-generic", "imessage"]),
+    required=True,
+)
+@click.option(
+    "--identifier", required=True, help="Account identifier (email, phone, etc.)"
+)
+@click.option("--owner-name", required=True)
+@click.option("--owner-surname", default=None)
+@click.option(
+    "--credentials-ref",
+    default=None,
+    help="Optional pointer into secrets store (e.g. oauth/google/<id>.json).",
+)
+@_db_option
+def accounts_add(
+    json_out: bool,
+    provider: str,
+    identifier: str,
+    owner_name: str,
+    owner_surname: str | None,
+    credentials_ref: str | None,
+    db_path: Path,
+) -> None:
+    """Create an account row + its owner (find-or-create by identifier)."""
+
+    async def _run() -> dict[str, Any]:
+        cas_root = db_path.parent / "attachments"
+        async with open_db(db_path) as db:
+            storage = Storage(db, CASStore(cas_root))
+
+            # Detect duplicate before any write so we can surface a clean error.
+            async with db.execute(
+                "SELECT id FROM accounts WHERE source=? AND account_identifier=?",
+                (provider, identifier),
+            ) as cur:
+                existing = await cur.fetchone()
+            if existing is not None:
+                return {
+                    "ok": False,
+                    "error": {
+                        "code": "ACCOUNT_EXISTS",
+                        "message": (
+                            f"account already exists: provider={provider} "
+                            f"identifier={identifier!r}"
+                        ),
+                    },
+                }
+
+            # Find-or-create owner. First try to find an existing owner row
+            # matching the name (and optionally surname) so a second account
+            # for the same person reuses their row rather than creating a new one.
+            async with db.execute(
+                "SELECT id FROM people WHERE is_owner=1 AND name=? "
+                "AND COALESCE(surname, '') = COALESCE(?, '') "
+                "ORDER BY id LIMIT 1",
+                (owner_name, owner_surname or ""),
+            ) as cur:
+                owner_row = await cur.fetchone()
+
+            kind = _identifier_kind_for_provider(provider)
+            if owner_row is not None:
+                # Reuse the existing owner row — attach the new identifier.
+                owner_id = int(owner_row["id"])
+                await db.execute(
+                    "INSERT OR IGNORE INTO identifiers "
+                    "(person_id, kind, value, is_primary, created_at) "
+                    "VALUES (?, ?, ?, 0, ?)",
+                    (owner_id, kind, identifier, datetime.now(UTC).isoformat()),
+                )
+                await db.commit()
+            else:
+                owner_id = await storage.upsert_owner(
+                    name=owner_name,
+                    surname=owner_surname,
+                    identifiers=[Identifier(kind=kind, value=identifier)],
+                )
+
+            account_id = await storage.upsert_account(
+                source=provider,
+                identifier=identifier,
+                owner_id=owner_id,
+                credentials_ref=credentials_ref,
+            )
+            return {
+                "ok": True,
+                "account": {
+                    "id": account_id,
+                    "source": provider,
+                    "identifier": identifier,
+                    "owner_id": owner_id,
+                },
+            }
+
+    result = asyncio.run(_run())
+    if json_out:
+        if result["ok"]:
+            _emit_envelope(data={"account": result["account"]})
+        else:
+            _emit_envelope(error=result["error"])
+        return
+    if not result["ok"]:
+        raise click.ClickException(result["error"]["message"])
+    click.echo(
+        f"added account #{result['account']['id']}: "
+        f"{result['account']['source']}/{result['account']['identifier']}"
+    )
 
 
 @accounts_group.command("disable")
@@ -105,3 +256,44 @@ def accounts_delete(account_id: int, force: bool, db_path: Path) -> None:
         click.echo(f"deleted account #{account_id}")
 
     asyncio.run(_run())
+
+
+@accounts_group.command("remove")
+@click.argument("account_id", type=int)
+@click.option("--json", "json_out", is_flag=True)
+@_db_option
+def accounts_remove(account_id: int, json_out: bool, db_path: Path) -> None:
+    """Delete an account + its messages + sync_status (no confirmation)."""
+
+    async def _run() -> dict[str, Any]:
+        async with open_db(db_path) as db:
+            async with db.execute(
+                "SELECT id FROM accounts WHERE id=?", (account_id,)
+            ) as cur:
+                row = await cur.fetchone()
+            if row is None:
+                return {
+                    "ok": False,
+                    "error": {
+                        "code": "ACCOUNT_NOT_FOUND",
+                        "message": f"no account with id={account_id}",
+                    },
+                }
+            await db.execute("DELETE FROM messages WHERE account_id=?", (account_id,))
+            await db.execute(
+                "DELETE FROM sync_status WHERE account_id=?", (account_id,)
+            )
+            await db.execute("DELETE FROM accounts WHERE id=?", (account_id,))
+            await db.commit()
+        return {"ok": True}
+
+    result = asyncio.run(_run())
+    if json_out:
+        if result["ok"]:
+            _emit_envelope(data={"removed_id": account_id})
+        else:
+            _emit_envelope(error=result["error"])
+        return
+    if not result["ok"]:
+        raise click.ClickException(result["error"]["message"])
+    click.echo(f"removed account #{account_id}")

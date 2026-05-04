@@ -87,6 +87,13 @@ def _has_unfilled_placeholder(cfg: dict[str, Any]) -> bool:
     return walk(cfg)
 
 
+def _emit_envelope(
+    *, data: dict[str, Any] | None = None, error: dict[str, str] | None = None
+) -> None:
+    payload = {"ok": error is None, "data": data, "error": error}
+    click.echo(json.dumps(payload))
+
+
 @click.group("oauth")
 def oauth_group() -> None:
     """Interactive OAuth login + secret management."""
@@ -111,17 +118,39 @@ def login_group() -> None:
     default=paths.secrets_dir,
     show_default="$ACCOUNTPILOT_DATA_DIR/secrets",
 )
-def login_google(account_id: int, config_dir: Path, secrets_root: Path) -> None:
+@click.option("--json", "json_out", is_flag=True)
+def login_google(
+    account_id: int,
+    config_dir: Path,
+    secrets_root: Path,
+    json_out: bool,
+) -> None:
     """Run Google OAuth Desktop flow and persist refresh token."""
-    client_config = _load_client_config("google", config_dir)
-    payload = oauth_flow.google_interactive_login(
-        client_config,
-        scopes=_GOOGLE_SCOPES,
-    )
+    try:
+        client_config = _load_client_config("google", config_dir)
+        payload = oauth_flow.google_interactive_login(
+            client_config,
+            scopes=_GOOGLE_SCOPES,
+        )
+    except Exception as exc:
+        if json_out:
+            _emit_envelope(error={"code": "OAUTH_FAILED", "message": str(exc)})
+            return
+        raise
+
     out = secrets_root / "oauth" / "google" / f"{account_id}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2))
     out.chmod(0o600)
+    if json_out:
+        _emit_envelope(
+            data={
+                "account_id": account_id,
+                "provider": "google",
+                "secret_path": str(out),
+            }
+        )
+        return
     click.echo(f"oauth login: account={account_id} provider=google → {out}")
 
 
@@ -139,22 +168,40 @@ def login_google(account_id: int, config_dir: Path, secrets_root: Path) -> None:
     default=paths.secrets_dir,
     show_default="$ACCOUNTPILOT_DATA_DIR/secrets",
 )
+@click.option("--json", "json_out", is_flag=True)
 def login_microsoft(
     account_id: int,
     config_dir: Path,
     secrets_root: Path,
+    json_out: bool,
 ) -> None:
     """Run Microsoft msal interactive flow and persist refresh token."""
-    client_config = _load_client_config("microsoft", config_dir)
-    payload = oauth_flow.microsoft_interactive_login(
-        client_id=client_config["client_id"],
-        authority=client_config["authority"],
-        scopes=_MICROSOFT_SCOPES,
-    )
+    try:
+        client_config = _load_client_config("microsoft", config_dir)
+        payload = oauth_flow.microsoft_interactive_login(
+            client_id=client_config["client_id"],
+            authority=client_config["authority"],
+            scopes=_MICROSOFT_SCOPES,
+        )
+    except Exception as exc:
+        if json_out:
+            _emit_envelope(error={"code": "OAUTH_FAILED", "message": str(exc)})
+            return
+        raise
+
     out = secrets_root / "oauth" / "microsoft" / f"{account_id}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2))
     out.chmod(0o600)
+    if json_out:
+        _emit_envelope(
+            data={
+                "account_id": account_id,
+                "provider": "microsoft",
+                "secret_path": str(out),
+            }
+        )
+        return
     click.echo(f"oauth login: account={account_id} provider=microsoft → {out}")
 
 
