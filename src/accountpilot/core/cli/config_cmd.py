@@ -32,7 +32,9 @@ from accountpilot.core.models import Identifier
 from accountpilot.core.storage import Storage
 
 
-def _emit_envelope(*, data: object | None = None, error: dict[str, str] | None = None) -> None:
+def _emit_envelope(
+    *, data: object | None = None, error: dict[str, str] | None = None
+) -> None:
     payload = {"ok": error is None, "data": data, "error": error}
     click.echo(json.dumps(payload))
 
@@ -66,7 +68,9 @@ def config_import(config_path: Path, db_path: Path, json_out: bool) -> None:
     """
     if not config_path.exists():
         if json_out:
-            _emit_envelope(data={"accounts_imported": 0, "renamed_to": None, "noop": True})
+            _emit_envelope(
+                data={"accounts_imported": 0, "renamed_to": None, "noop": True}
+            )
             return
         click.echo(f"no config at {config_path}; nothing to import")
         return
@@ -126,5 +130,6 @@ def config_import(config_path: Path, db_path: Path, json_out: bool) -> None:
         )
         return
     click.echo(
-        f"imported {accounts_imported} account(s); renamed {config_path.name} → {renamed.name}"
+        f"imported {accounts_imported} account(s); "
+        f"renamed {config_path.name} → {renamed.name}"
     )

@@ -6,8 +6,12 @@ The actual OAuth flow opens a browser and runs a local server; we mock
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
 import json
-from pathlib import Path
 from unittest.mock import patch
 
 from click.testing import CliRunner
@@ -20,24 +24,34 @@ def test_login_google_json_emits_envelope(tmp_path: Path) -> None:
     config_dir = tmp_path / "config"
 
     fake_payload = {
-        "client_id": "x", "client_secret": "y",
-        "refresh_token": "rt", "token_uri": "https://oauth2.googleapis.com/token",
+        "client_id": "x",
+        "client_secret": "y",
+        "refresh_token": "rt",
+        "token_uri": "https://oauth2.googleapis.com/token",
     }
 
-    with patch(
-        "accountpilot.core.cli.oauth_cmd.oauth_flow.google_interactive_login",
-        return_value=fake_payload,
-    ), patch(
-        "accountpilot.core.cli.oauth_cmd._load_client_config",
-        return_value={"client_id": "x", "client_secret": "y"},
+    with (
+        patch(
+            "accountpilot.core.cli.oauth_cmd.oauth_flow.google_interactive_login",
+            return_value=fake_payload,
+        ),
+        patch(
+            "accountpilot.core.cli.oauth_cmd._load_client_config",
+            return_value={"client_id": "x", "client_secret": "y"},
+        ),
     ):
         runner = CliRunner()
         result = runner.invoke(
             oauth_group,
             [
-                "login", "google", "42", "--json",
-                "--config-dir", str(config_dir),
-                "--secrets-root", str(secrets_root),
+                "login",
+                "google",
+                "42",
+                "--json",
+                "--config-dir",
+                str(config_dir),
+                "--secrets-root",
+                str(secrets_root),
             ],
         )
 
@@ -59,24 +73,37 @@ def test_login_microsoft_json(tmp_path: Path) -> None:
     config_dir = tmp_path / "config"
 
     fake_payload = {
-        "access_token": "at", "refresh_token": "rt",
-        "client_id": "abc", "authority": "https://login.microsoftonline.com/common",
+        "access_token": "at",
+        "refresh_token": "rt",
+        "client_id": "abc",
+        "authority": "https://login.microsoftonline.com/common",
     }
 
-    with patch(
-        "accountpilot.core.cli.oauth_cmd.oauth_flow.microsoft_interactive_login",
-        return_value=fake_payload,
-    ), patch(
-        "accountpilot.core.cli.oauth_cmd._load_client_config",
-        return_value={"client_id": "abc", "authority": "https://login.microsoftonline.com/common"},
+    with (
+        patch(
+            "accountpilot.core.cli.oauth_cmd.oauth_flow.microsoft_interactive_login",
+            return_value=fake_payload,
+        ),
+        patch(
+            "accountpilot.core.cli.oauth_cmd._load_client_config",
+            return_value={
+                "client_id": "abc",
+                "authority": "https://login.microsoftonline.com/common",
+            },
+        ),
     ):
         runner = CliRunner()
         result = runner.invoke(
             oauth_group,
             [
-                "login", "microsoft", "7", "--json",
-                "--config-dir", str(config_dir),
-                "--secrets-root", str(secrets_root),
+                "login",
+                "microsoft",
+                "7",
+                "--json",
+                "--config-dir",
+                str(config_dir),
+                "--secrets-root",
+                str(secrets_root),
             ],
         )
 

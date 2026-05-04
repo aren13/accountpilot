@@ -33,7 +33,9 @@ from accountpilot.core.models import Identifier, IdentifierKind
 from accountpilot.core.storage import Storage
 
 
-def _emit_envelope(*, data: Any | None = None, error: dict[str, str] | None = None) -> None:
+def _emit_envelope(
+    *, data: Any | None = None, error: dict[str, str] | None = None
+) -> None:
     """Emit the standard JSON envelope to stdout. One call per CLI invocation."""
     payload = {"ok": error is None, "data": data, "error": error}
     click.echo(json.dumps(payload))
@@ -111,7 +113,9 @@ def _identifier_kind_for_provider(provider: str) -> IdentifierKind:
     type=click.Choice(["gmail", "outlook", "imap-generic", "imessage"]),
     required=True,
 )
-@click.option("--identifier", required=True, help="Account identifier (email, phone, etc.)")
+@click.option(
+    "--identifier", required=True, help="Account identifier (email, phone, etc.)"
+)
 @click.option("--owner-name", required=True)
 @click.option("--owner-surname", default=None)
 @click.option(

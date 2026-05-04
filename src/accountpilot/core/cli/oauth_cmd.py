@@ -143,11 +143,13 @@ def login_google(
     out.write_text(json.dumps(payload, indent=2))
     out.chmod(0o600)
     if json_out:
-        _emit_envelope(data={
-            "account_id": account_id,
-            "provider": "google",
-            "secret_path": str(out),
-        })
+        _emit_envelope(
+            data={
+                "account_id": account_id,
+                "provider": "google",
+                "secret_path": str(out),
+            }
+        )
         return
     click.echo(f"oauth login: account={account_id} provider=google → {out}")
 
@@ -192,11 +194,13 @@ def login_microsoft(
     out.write_text(json.dumps(payload, indent=2))
     out.chmod(0o600)
     if json_out:
-        _emit_envelope(data={
-            "account_id": account_id,
-            "provider": "microsoft",
-            "secret_path": str(out),
-        })
+        _emit_envelope(
+            data={
+                "account_id": account_id,
+                "provider": "microsoft",
+                "secret_path": str(out),
+            }
+        )
         return
     click.echo(f"oauth login: account={account_id} provider=microsoft → {out}")
 

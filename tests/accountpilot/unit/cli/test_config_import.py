@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
 import asyncio
 import json
-from pathlib import Path
 from textwrap import dedent
 
 from click.testing import CliRunner
@@ -15,15 +19,18 @@ from accountpilot.core.db.connection import open_db
 
 def _seed_db(db: Path) -> None:
     """Open the DB once so migrations run; no rows added."""
+
     async def _run() -> None:
-        async with open_db(db) as conn:
+        async with open_db(db):
             pass
+
     asyncio.run(_run())
 
 
 def _write_minimal_config(path: Path) -> None:
-    path.write_text(dedent(
-        """\
+    path.write_text(
+        dedent(
+            """\
         version: 1
         owners:
           - name: Ada
@@ -39,7 +46,8 @@ def _write_minimal_config(path: Path) -> None:
                 owner: ada@example.com
                 provider: gmail
         """
-    ))
+        )
+    )
 
 
 def test_import_applies_yaml_then_renames_it(tmp_path: Path) -> None:
@@ -65,11 +73,13 @@ def test_import_applies_yaml_then_renames_it(tmp_path: Path) -> None:
 
     # DB has the row
     async def _check() -> int:
-        async with open_db(db) as conn, conn.execute(
-            "SELECT COUNT(*) AS n FROM accounts"
-        ) as cur:
+        async with (
+            open_db(db) as conn,
+            conn.execute("SELECT COUNT(*) AS n FROM accounts") as cur,
+        ):
             row = await cur.fetchone()
         return int(row["n"])
+
     assert asyncio.run(_check()) == 1
 
 
@@ -82,9 +92,12 @@ def test_import_missing_yaml_is_noop_success(tmp_path: Path) -> None:
     result = runner.invoke(
         config_group,
         [
-            "import", "--json",
-            "--config", str(tmp_path / "config.yaml"),  # does not exist
-            "--db-path", str(db),
+            "import",
+            "--json",
+            "--config",
+            str(tmp_path / "config.yaml"),  # does not exist
+            "--db-path",
+            str(db),
         ],
     )
     assert result.exit_code == 0, result.output

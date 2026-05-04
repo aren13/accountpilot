@@ -18,8 +18,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
 import json
-from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
@@ -86,9 +90,7 @@ def test_list_json_empty_db(tmp_path: Path) -> None:
     asyncio.run(_setup())
 
     runner = CliRunner()
-    result = runner.invoke(
-        accounts_group, ["list", "--json", "--db-path", str(db)]
-    )
+    result = runner.invoke(accounts_group, ["list", "--json", "--db-path", str(db)])
     assert result.exit_code == 0
     payload = json.loads(result.output)
     assert payload == {"ok": True, "data": {"accounts": []}, "error": None}
@@ -100,7 +102,7 @@ def test_add_creates_account_with_new_owner(tmp_path: Path) -> None:
     import asyncio
 
     async def _setup() -> None:
-        async with open_db(db) as conn:
+        async with open_db(db):
             pass  # open_db auto-applies migrations
 
     asyncio.run(_setup())
@@ -139,7 +141,7 @@ def test_add_reuses_existing_owner_by_identifier(tmp_path: Path) -> None:
     import asyncio
 
     async def _setup() -> None:
-        async with open_db(db) as conn:
+        async with open_db(db):
             pass
 
     asyncio.run(_setup())
@@ -192,7 +194,7 @@ def test_add_duplicate_identifier_returns_error(tmp_path: Path) -> None:
     import asyncio
 
     async def _setup() -> None:
-        async with open_db(db) as conn:
+        async with open_db(db):
             pass
 
     asyncio.run(_setup())
