@@ -16,12 +16,17 @@ fi
 ENT="$(pwd)/app/AccountPilot/AccountPilot.entitlements"
 HELPER_ENT="$(pwd)/helpers/fda-helper/helper.entitlements"
 
-# 1. Sign every Mach-O inside Resources/python/runtime/
-echo "==> signing embedded Python Mach-Os"
-find "$APP_BUNDLE/Contents/Resources/python/runtime" \
+# 1. Sign every Mach-O inside Resources/python/ — both runtime/ (interpreter
+# + stdlib .so) AND site-packages/ (PyPI C extensions like pydantic_core,
+# cryptography, watchdog). Notarization REQUIRES every Mach-O in the
+# bundle to be signed with our Developer ID + secure timestamp; PyPI .so
+# files come pre-signed by their publishers (or unsigned), so we must
+# re-sign them.
+echo "==> signing embedded Python Mach-Os (runtime + site-packages)"
+find "$APP_BUNDLE/Contents/Resources/python" \
      -type f \( -name "*.dylib" -o -name "*.so" -o -perm -u+x \) \
      -print0 | while IFS= read -r -d '' mach; do
-    # skip Python files, hash files, etc. by checking magic
+    # filter to Mach-O via magic bytes (skip .py, .pyc, hash files, etc.)
     head -c 4 "$mach" | xxd -p | grep -qE '^(cffaedfe|cefaedfe|feedface|feedfacf)' || continue
     codesign --force --sign "$APPLE_DEV_ID" --options runtime --timestamp "$mach"
 done
