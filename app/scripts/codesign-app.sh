@@ -26,8 +26,12 @@ echo "==> signing embedded Python Mach-Os (runtime + site-packages)"
 find "$APP_BUNDLE/Contents/Resources/python" \
      -type f \( -name "*.dylib" -o -name "*.so" -o -perm -u+x \) \
      -print0 | while IFS= read -r -d '' mach; do
-    # filter to Mach-O via magic bytes (skip .py, .pyc, hash files, etc.)
-    head -c 4 "$mach" | xxd -p | grep -qE '^(cffaedfe|cefaedfe|feedface|feedfacf)' || continue
+    # filter to Mach-O via magic bytes (skip .py, .pyc, hash files, etc.).
+    # Magics: feedface/feedfacf = 32/64-bit Mach-O,
+    #         cefaedfe/cffaedfe = 32/64-bit byte-swapped,
+    #         cafebabe/cafebabf = universal (fat) binaries — common for PyPI
+    #         wheels (cryptography, mypyc, charset_normalizer ship fat .so).
+    head -c 4 "$mach" | xxd -p | grep -qE '^(cffaedfe|cefaedfe|feedface|feedfacf|cafebabe|cafebabf)' || continue
     codesign --force --sign "$APPLE_DEV_ID" --options runtime --timestamp "$mach"
 done
 
