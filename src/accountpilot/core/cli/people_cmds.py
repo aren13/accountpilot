@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,13 @@ import click
 from accountpilot.core import paths
 from accountpilot.core.db.connection import open_db
 from accountpilot.core.identity import merge_people
+
+
+def _emit_envelope(
+    *, data: Any | None = None, error: dict[str, str] | None = None
+) -> None:
+    payload = {"ok": error is None, "data": data, "error": error}
+    click.echo(json.dumps(payload))
 
 
 @click.group("people")
@@ -47,7 +55,55 @@ def _db_option(f: Any) -> Any:
 @people_group.command("list")
 @_db_option
 @click.option("--owners/--all", default=False)
-def people_list(db_path: Path, owners: bool) -> None:
+@click.option("--json", "json_out", is_flag=True, default=False)
+def people_list(db_path: Path, owners: bool, json_out: bool) -> None:
+    if json_out:
+        async def _run_json() -> None:
+            sql_main = (
+                "SELECT p.id, p.name, p.surname, p.is_owner, "
+                "(SELECT COUNT(*) FROM message_people mp "
+                " WHERE mp.person_id = p.id) AS message_count "
+                "FROM people p "
+                + ("WHERE p.is_owner=1 " if owners else "")
+                + "ORDER BY message_count DESC, p.id"
+            )
+            async with open_db(db_path) as db:
+                async with db.execute(sql_main) as cur:
+                    rows = await cur.fetchall()
+
+                people_by_id: dict[int, dict[str, Any]] = {}
+                ordered_ids: list[int] = []
+                for r in rows:
+                    people_by_id[r["id"]] = {
+                        "id": r["id"],
+                        "name": r["name"],
+                        "surname": r["surname"],
+                        "is_owner": bool(r["is_owner"]),
+                        "identifiers": [],
+                        "message_count": r["message_count"],
+                    }
+                    ordered_ids.append(r["id"])
+
+                if people_by_id:
+                    placeholders = ",".join("?" * len(people_by_id))
+                    async with db.execute(
+                        f"SELECT person_id, kind, value FROM identifiers "
+                        f"WHERE person_id IN ({placeholders}) "
+                        f"ORDER BY id",
+                        tuple(people_by_id.keys()),
+                    ) as cur2:
+                        async for ident in cur2:
+                            people_by_id[ident["person_id"]]["identifiers"].append({
+                                "kind": ident["kind"],
+                                "value": ident["value"],
+                            })
+
+            ordered = [people_by_id[i] for i in ordered_ids]
+            _emit_envelope(data={"people": ordered})
+
+        asyncio.run(_run_json())
+        return
+
     async def _run() -> None:
         async with open_db(db_path) as db:
             sql = (

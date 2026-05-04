@@ -46,6 +46,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `accountpilot sync-once {mail,imessage} <id> --json`,
   `accountpilot imessage probe-fda --json`.** Plugins'
   `sync_once` now returns the count of new messages written.
+- **Data viewer.** New SwiftUI three-pane browse experience: sidebar
+  with accounts + people, message list with FTS5-ranked
+  `.searchable()` query bar, message detail with attachment thumbnails
+  and one-click "Open" via NSWorkspace. Replaces the Phase 2/3
+  bare-AccountsView main window; AccountsView is now reachable via
+  the sidebar's "Manage Accounts…" row.
+- **CLI: `accountpilot messages list [--account ID] [--contact-id ID] [--since YYYY-MM-DD] [--limit N] [--cursor ID] --json`,
+  `accountpilot messages get <id> --json`,
+  `accountpilot attachments path <id> --json`,
+  `accountpilot search "query" --json`,
+  `accountpilot people list --json`.** All return the standard JSON
+  envelope. `messages list` paginates by `id` cursor. `search`
+  returns FTS5 BM25-ranked results.
 
 ## [0.1.4] — 2026-05-04 (AP-SP4)
 
