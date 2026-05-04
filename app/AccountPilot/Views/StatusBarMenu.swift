@@ -2,7 +2,7 @@ import SwiftUI
 
 struct StatusBarMenu: View {
     @ObservedObject var supervisor: SyncSupervisor
-    var openMain: () -> Void
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         if supervisor.status.isEmpty {
@@ -20,7 +20,10 @@ struct StatusBarMenu: View {
             }
             Divider()
         }
-        Button("Open AccountPilot…") { openMain() }
+        Button("Open AccountPilot…") {
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
+        }
         Divider()
         Button(supervisor.isRunning ? "Pause Sync" : "Resume Sync") {
             Task {

@@ -23,25 +23,11 @@ struct AccountPilotApp: App {
         .windowResizability(.contentMinSize)
 
         MenuBarExtra("AccountPilot", systemImage: supervisor.isRunning ? "tray.full.fill" : "tray") {
-            StatusBarMenu(supervisor: supervisor) {
-                NSApp.activate(ignoringOtherApps: true)
-                openMainWindow()
-            }
+            StatusBarMenu(supervisor: supervisor)
         }
 
         Settings {
             SettingsView(supervisor: supervisor)
-        }
-    }
-
-    @MainActor
-    private func openMainWindow() {
-        // SwiftUI's Window scene with id: "main" can be opened via the
-        // legacy URL scheme — the more recent OpenWindowAction lives in
-        // EnvironmentValues which isn't available at the App-body level
-        // without ceremony. The URL form just works.
-        if let url = URL(string: "accountpilot://main") {
-            NSWorkspace.shared.open(url)
         }
     }
 }
