@@ -18,7 +18,7 @@ struct ContentView: View {
                 })
             } else {
                 VStack(spacing: 0) {
-                    AccountsView()
+                    BrowseView()
                     Divider()
                     footer
                 }
