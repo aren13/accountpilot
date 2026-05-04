@@ -76,3 +76,7 @@ def _register_plugin_clis() -> None:
 
 
 _register_plugin_clis()
+
+
+if __name__ == "__main__":
+    cli()

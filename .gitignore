@@ -39,3 +39,4 @@ Thumbs.db
 dist/AccountPilot.app/
 dist/AccountPilot-*.dmg
 app/build/
+.python-cache/
