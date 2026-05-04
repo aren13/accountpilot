@@ -16,7 +16,7 @@ echo "==> verify $APP_BUNDLE"
 # 1. Bundle structure
 for path in \
     "Contents/MacOS/AccountPilot" \
-    "Contents/Frameworks/Python.framework/bin/python3" \
+    "Contents/Frameworks/python/bin/python3" \
     "Contents/Resources/python/site-packages/accountpilot/__init__.py" \
     "Contents/Resources/python/site-packages/accountpilot/cli.py" \
     "Contents/Resources/bin/accountpilot" \

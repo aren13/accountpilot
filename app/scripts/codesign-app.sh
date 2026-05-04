@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Codesign every Mach-O inside the .app bundle, depth-first, then the
 # outer bundle. Required because --deep is unreliable for nested
-# Python.framework + Helpers/.
+# Frameworks/python/ + Helpers/.
 
 set -euo pipefail
 
@@ -14,9 +14,9 @@ fi
 ENT="$(pwd)/app/AccountPilot/AccountPilot.entitlements"
 HELPER_ENT="$(pwd)/helpers/fda-helper/helper.entitlements"
 
-# 1. Sign every Mach-O inside Frameworks/Python.framework
-echo "==> signing Python.framework Mach-Os"
-find "$APP_BUNDLE/Contents/Frameworks/Python.framework" \
+# 1. Sign every Mach-O inside Frameworks/python/
+echo "==> signing embedded Python Mach-Os"
+find "$APP_BUNDLE/Contents/Frameworks/python" \
      -type f \( -name "*.dylib" -o -name "*.so" -o -perm -u+x \) \
      -print0 | while IFS= read -r -d '' mach; do
     # skip Python files, hash files, etc. by checking magic

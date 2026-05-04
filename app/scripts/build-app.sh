@@ -29,7 +29,7 @@ BUILT_APP=$(find app/build/Build/Products/Release -name "AccountPilot.app" -maxd
 test -d "$BUILT_APP" || { echo "error: xcodebuild did not produce AccountPilot.app"; exit 70; }
 cp -R "$BUILT_APP" "$APP_BUNDLE"
 
-echo "==> [2/5] embed Python.framework + accountpilot venv"
+echo "==> [2/5] embed Python runtime + accountpilot package"
 APP_BUNDLE="$APP_BUNDLE" "$REPO_ROOT/app/scripts/bundle-python.sh"
 
 echo "==> [3/5] copy FDA helper into Contents/Helpers/"

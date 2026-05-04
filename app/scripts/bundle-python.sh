@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
-# Embed a relocatable Python.framework into the .app bundle and install
+# Embed a relocatable Python distribution into the .app bundle and install
 # the accountpilot package + dependencies into a flat site-packages
 # directory inside the bundle.
 #
 # Inputs (from build-app.sh): $APP_BUNDLE — absolute path to AccountPilot.app
 # Output:
-#   $APP_BUNDLE/Contents/Frameworks/Python.framework/   (interpreter + stdlib)
+#   $APP_BUNDLE/Contents/Frameworks/python/             (interpreter + stdlib)
 #   $APP_BUNDLE/Contents/Resources/python/site-packages/ (accountpilot + deps)
 #
 # python-build-standalone is relocatable: its dyld load commands and
 # stdlib paths are already rewritten to be bundle-relative.
 # https://github.com/astral-sh/python-build-standalone
+#
+# Note we use `Contents/Frameworks/python/` (no .framework extension).
+# python-build-standalone's install_only layout (`bin/`, `lib/`, …) is not
+# an Apple framework structure (which would require `Versions/A/...`).
+# Naming it `Python.framework` would make codesign reject the outer bundle
+# as "bundle format unrecognized."
 #
 # We deliberately DO NOT use venv. venv writes the build-time absolute
 # path of the parent interpreter into every script's shebang, which
@@ -49,9 +55,9 @@ FW_DIR="$APP_BUNDLE/Contents/Frameworks"
 mkdir -p "$FW_DIR"
 rm -rf "$FW_DIR/Python.framework" "$FW_DIR/python"
 tar -xzf "$CACHE_DIR/$TARBALL" -C "$FW_DIR"
-mv "$FW_DIR/python" "$FW_DIR/Python.framework"
+# Tarball already extracts to "python/"; keep that name (no .framework extension).
 
-PYTHON_BIN="$FW_DIR/Python.framework/bin/python3"
+PYTHON_BIN="$FW_DIR/python/bin/python3"
 test -x "$PYTHON_BIN" || { echo "error: $PYTHON_BIN not executable" >&2; exit 70; }
 
 SITE_PACKAGES="$APP_BUNDLE/Contents/Resources/python/site-packages"
@@ -78,7 +84,7 @@ set -e
 SHIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUNDLE_ROOT="$(cd "$SHIM_DIR/../../.." && pwd)"
 export PYTHONPATH="$BUNDLE_ROOT/Contents/Resources/python/site-packages"
-exec "$BUNDLE_ROOT/Contents/Frameworks/Python.framework/bin/python3" \
+exec "$BUNDLE_ROOT/Contents/Frameworks/python/bin/python3" \
     -m accountpilot.cli "$@"
 SHIM
 chmod +x "$SHIM_DIR/accountpilot"
