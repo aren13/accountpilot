@@ -92,3 +92,146 @@ def test_list_json_empty_db(tmp_path: Path) -> None:
     assert result.exit_code == 0
     payload = json.loads(result.output)
     assert payload == {"ok": True, "data": {"accounts": []}, "error": None}
+
+
+def test_add_creates_account_with_new_owner(tmp_path: Path) -> None:
+    """Add an account with --owner-name; the owner row is created."""
+    db = tmp_path / "test.db"
+    import asyncio
+
+    async def _setup() -> None:
+        async with open_db(db) as conn:
+            pass  # open_db auto-applies migrations
+
+    asyncio.run(_setup())
+
+    runner = CliRunner()
+    result = runner.invoke(
+        accounts_group,
+        [
+            "add",
+            "--json",
+            "--provider",
+            "gmail",
+            "--identifier",
+            "ada@example.com",
+            "--owner-name",
+            "Ada",
+            "--owner-surname",
+            "Lovelace",
+            "--db-path",
+            str(db),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["ok"] is True
+    assert payload["data"]["account"]["id"] == 1
+    assert payload["data"]["account"]["source"] == "gmail"
+    assert payload["data"]["account"]["identifier"] == "ada@example.com"
+    assert payload["data"]["account"]["owner_id"] == 1
+    assert payload["error"] is None
+
+
+def test_add_reuses_existing_owner_by_identifier(tmp_path: Path) -> None:
+    """Adding a second gmail account for the same owner reuses person row 1."""
+    db = tmp_path / "test.db"
+    import asyncio
+
+    async def _setup() -> None:
+        async with open_db(db) as conn:
+            pass
+
+    asyncio.run(_setup())
+
+    runner = CliRunner()
+    runner.invoke(
+        accounts_group,
+        [
+            "add",
+            "--json",
+            "--provider",
+            "gmail",
+            "--identifier",
+            "ada@example.com",
+            "--owner-name",
+            "Ada",
+            "--owner-surname",
+            "Lovelace",
+            "--db-path",
+            str(db),
+        ],
+    )
+    result2 = runner.invoke(
+        accounts_group,
+        [
+            "add",
+            "--json",
+            "--provider",
+            "gmail",
+            "--identifier",
+            "ada+work@example.com",
+            "--owner-name",
+            "Ada",
+            "--owner-surname",
+            "Lovelace",
+            "--db-path",
+            str(db),
+        ],
+    )
+    assert result2.exit_code == 0, result2.output
+    payload = json.loads(result2.output)
+    assert payload["data"]["account"]["owner_id"] == 1, "should reuse owner #1"
+    assert payload["data"]["account"]["id"] == 2
+
+
+def test_add_duplicate_identifier_returns_error(tmp_path: Path) -> None:
+    """Same (source, identifier) twice is a unique-constraint violation —
+    surface as a clean error, not a stack trace."""
+    db = tmp_path / "test.db"
+    import asyncio
+
+    async def _setup() -> None:
+        async with open_db(db) as conn:
+            pass
+
+    asyncio.run(_setup())
+
+    runner = CliRunner()
+    runner.invoke(
+        accounts_group,
+        [
+            "add",
+            "--json",
+            "--provider",
+            "gmail",
+            "--identifier",
+            "ada@example.com",
+            "--owner-name",
+            "Ada",
+            "--db-path",
+            str(db),
+        ],
+    )
+    result2 = runner.invoke(
+        accounts_group,
+        [
+            "add",
+            "--json",
+            "--provider",
+            "gmail",
+            "--identifier",
+            "ada@example.com",
+            "--owner-name",
+            "Ada",
+            "--db-path",
+            str(db),
+        ],
+    )
+    # Exit code is 0 because we surface the error in the JSON envelope, not via
+    # exit code — the Swift caller parses stdout regardless of exit code.
+    assert result2.exit_code == 0, result2.output
+    payload = json.loads(result2.output)
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "ACCOUNT_EXISTS"
+    assert "ada@example.com" in payload["error"]["message"]

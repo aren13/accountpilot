@@ -27,7 +27,10 @@ from typing import Any
 import click
 
 from accountpilot.core import paths
+from accountpilot.core.cas import CASStore
 from accountpilot.core.db.connection import open_db
+from accountpilot.core.models import Identifier, IdentifierKind
+from accountpilot.core.storage import Storage
 
 
 def _emit_envelope(*, data: Any | None = None, error: dict[str, str] | None = None) -> None:
@@ -92,6 +95,123 @@ def accounts_list(db_path: Path, json_out: bool) -> None:
             )
 
     asyncio.run(_run())
+
+
+def _identifier_kind_for_provider(provider: str) -> IdentifierKind:
+    """Map provider → the identifier kind we record on the owner row."""
+    if provider in {"gmail", "outlook", "imap-generic", "imessage"}:
+        return "email"
+    raise click.UsageError(f"unknown provider: {provider}")
+
+
+@accounts_group.command("add")
+@click.option("--json", "json_out", is_flag=True)
+@click.option(
+    "--provider",
+    type=click.Choice(["gmail", "outlook", "imap-generic", "imessage"]),
+    required=True,
+)
+@click.option("--identifier", required=True, help="Account identifier (email, phone, etc.)")
+@click.option("--owner-name", required=True)
+@click.option("--owner-surname", default=None)
+@click.option(
+    "--credentials-ref",
+    default=None,
+    help="Optional pointer into secrets store (e.g. oauth/google/<id>.json).",
+)
+@_db_option
+def accounts_add(
+    json_out: bool,
+    provider: str,
+    identifier: str,
+    owner_name: str,
+    owner_surname: str | None,
+    credentials_ref: str | None,
+    db_path: Path,
+) -> None:
+    """Create an account row + its owner (find-or-create by identifier)."""
+
+    async def _run() -> dict[str, Any]:
+        cas_root = db_path.parent / "attachments"
+        async with open_db(db_path) as db:
+            storage = Storage(db, CASStore(cas_root))
+
+            # Detect duplicate before any write so we can surface a clean error.
+            async with db.execute(
+                "SELECT id FROM accounts WHERE source=? AND account_identifier=?",
+                (provider, identifier),
+            ) as cur:
+                existing = await cur.fetchone()
+            if existing is not None:
+                return {
+                    "ok": False,
+                    "error": {
+                        "code": "ACCOUNT_EXISTS",
+                        "message": (
+                            f"account already exists: provider={provider} "
+                            f"identifier={identifier!r}"
+                        ),
+                    },
+                }
+
+            # Find-or-create owner. First try to find an existing owner row
+            # matching the name (and optionally surname) so a second account
+            # for the same person reuses their row rather than creating a new one.
+            async with db.execute(
+                "SELECT id FROM people WHERE is_owner=1 AND name=? "
+                "AND COALESCE(surname, '') = COALESCE(?, '') "
+                "ORDER BY id LIMIT 1",
+                (owner_name, owner_surname or ""),
+            ) as cur:
+                owner_row = await cur.fetchone()
+
+            kind = _identifier_kind_for_provider(provider)
+            if owner_row is not None:
+                # Reuse the existing owner row — attach the new identifier.
+                owner_id = int(owner_row["id"])
+                await db.execute(
+                    "INSERT OR IGNORE INTO identifiers "
+                    "(person_id, kind, value, is_primary, created_at) "
+                    "VALUES (?, ?, ?, 0, ?)",
+                    (owner_id, kind, identifier, datetime.now(UTC).isoformat()),
+                )
+                await db.commit()
+            else:
+                owner_id = await storage.upsert_owner(
+                    name=owner_name,
+                    surname=owner_surname,
+                    identifiers=[Identifier(kind=kind, value=identifier)],
+                )
+
+            account_id = await storage.upsert_account(
+                source=provider,
+                identifier=identifier,
+                owner_id=owner_id,
+                credentials_ref=credentials_ref,
+            )
+            return {
+                "ok": True,
+                "account": {
+                    "id": account_id,
+                    "source": provider,
+                    "identifier": identifier,
+                    "owner_id": owner_id,
+                },
+            }
+
+    result = asyncio.run(_run())
+    if json_out:
+        if result["ok"]:
+            _emit_envelope(data={"account": result["account"]})
+        else:
+            _emit_envelope(error=result["error"])
+        return
+    if not result["ok"]:
+        raise click.ClickException(result["error"]["message"])
+    click.echo(
+        f"added account #{result['account']['id']}: "
+        f"{result['account']['source']}/{result['account']['identifier']}"
+    )
 
 
 @accounts_group.command("disable")
