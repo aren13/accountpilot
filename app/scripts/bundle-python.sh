@@ -73,6 +73,7 @@ rm -rf \
     "$FW_DIR/python/lib/python3.13/idlelib" \
     "$FW_DIR/python/lib/python3.13/turtledemo" \
     "$FW_DIR/python/lib/python3.13/test" \
+    "$FW_DIR/python/lib/python3.13/config-3.13-darwin" \
     "$FW_DIR/python/include" \
     "$FW_DIR/python/share" \
     "$FW_DIR/python/bin/idle3" \
@@ -89,6 +90,25 @@ mkdir -p "$SITE_PACKAGES"
 echo "==> installing accountpilot + deps into $SITE_PACKAGES via pip --target"
 "$PYTHON_BIN" -m pip install --upgrade pip --quiet
 "$PYTHON_BIN" -m pip install --quiet --target="$SITE_PACKAGES" "$(pwd)"
+
+# Strip script-style executables that pip leaves in bin/. Codesign treats
+# every executable file inside the bundle as a signable subcomponent and
+# rejects the outer .app sign with "code object is not signed at all" if
+# any are unsigned. These are install-time helpers (pip, pydoc, config) —
+# we already pip-installed accountpilot above and don't need them at
+# runtime. Keep only python3.13 (Mach-O) + its symlinks (python, python3).
+echo "==> stripping post-install scripts from python/bin/"
+rm -f \
+    "$FW_DIR/python/bin/pip" \
+    "$FW_DIR/python/bin/pip3" \
+    "$FW_DIR/python/bin/pip3.13" \
+    "$FW_DIR/python/bin/pydoc3" \
+    "$FW_DIR/python/bin/pydoc3.13" \
+    "$FW_DIR/python/bin/python3-config" \
+    "$FW_DIR/python/bin/python3.13-config" \
+    "$FW_DIR/python/bin/wheel" \
+    "$FW_DIR/python/bin/wheel3" \
+    "$FW_DIR/python/bin/wheel3.13"
 
 echo "==> verifying embedded accountpilot loads against bundled python"
 PYTHONPATH="$SITE_PACKAGES" "$PYTHON_BIN" -c \
