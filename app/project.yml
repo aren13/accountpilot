@@ -16,6 +16,11 @@ settings:
     MARKETING_VERSION: "0.2.0"
     CURRENT_PROJECT_VERSION: "1"
 
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle.git
+    from: "2.6.0"
+
 targets:
   AccountPilot:
     type: application
@@ -38,6 +43,9 @@ targets:
         LSMinimumSystemVersion: "13.0"
         LSUIElement: true
         NSHumanReadableCopyright: "Copyright (C) 2026 Hasan Arda Eren. AGPL-3.0-or-later."
+        SUFeedURL: "https://aren13.github.io/accountpilot/appcast.xml"
+        SUPublicEDKey: "REPLACE_AFTER_GENERATING_KEY"
+        SUEnableInstallerLauncherService: false
     entitlements:
       path: AccountPilot/AccountPilot.entitlements
       properties:
@@ -50,6 +58,8 @@ targets:
         copy:
           destination: plugins
           embed: true
+      - package: Sparkle
+        product: Sparkle
 
   AccountPilotXPC:
     type: xpc-service

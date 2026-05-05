@@ -59,6 +59,43 @@ if [ -d "$XPC_BUNDLE" ]; then
         "$XPC_BUNDLE"
 fi
 
+# 1.6: Sign Sparkle.framework's nested helpers depth-first.
+# Sparkle 2 ships Autoupdate.app, Updater.app, Installer.xpc,
+# Downloader.xpc, etc. inside Versions/B/Resources/. Each nested .app/
+# .xpc has its own Mach-O at Contents/MacOS/<name> that must be signed
+# before its bundle wrapper.
+SPARKLE_BUNDLE="$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
+if [ -d "$SPARKLE_BUNDLE" ]; then
+    echo "==> signing Sparkle.framework nested helpers"
+    # find every .app and .xpc bundle nested inside Sparkle.framework
+    while IFS= read -r -d '' nested; do
+        nested_macos="$nested/Contents/MacOS"
+        if [ -d "$nested_macos" ]; then
+            for bin in "$nested_macos"/*; do
+                [ -f "$bin" ] || continue
+                # Magic-byte filter: Mach-O + universal/fat magics.
+                if head -c 4 "$bin" | xxd -p | grep -qE '^(cffaedfe|cefaedfe|feedface|feedfacf|cafebabe|cafebabf)' 2>/dev/null; then
+                    codesign --force --sign "$APPLE_DEV_ID" --options runtime --timestamp "$bin"
+                fi
+            done
+        fi
+        # Sign the nested bundle wrapper.
+        codesign --force --sign "$APPLE_DEV_ID" --options runtime --timestamp "$nested"
+    done < <(find "$SPARKLE_BUNDLE" -type d \( -name "*.xpc" -o -name "*.app" \) -print0)
+
+    # Sign any bare Mach-O executables sitting directly in Versions/B/
+    # (e.g. Autoupdate, Sparkle itself). These are NOT inside a .app or .xpc
+    # bundle so the find-loop above misses them.
+    while IFS= read -r -d '' bare_bin; do
+        if head -c 4 "$bare_bin" | xxd -p | grep -qE '^(cffaedfe|cefaedfe|feedface|feedfacf|cafebabe|cafebabf)' 2>/dev/null; then
+            codesign --force --sign "$APPLE_DEV_ID" --options runtime --timestamp "$bare_bin"
+        fi
+    done < <(find "$SPARKLE_BUNDLE/Versions/B" -maxdepth 1 -type f -perm -u+x -print0)
+
+    # Sign the framework wrapper itself.
+    codesign --force --sign "$APPLE_DEV_ID" --options runtime --timestamp "$SPARKLE_BUNDLE"
+fi
+
 # 2. Sign the helper with its own entitlements
 echo "==> signing FDA helper"
 codesign --force --sign "$APPLE_DEV_ID" \

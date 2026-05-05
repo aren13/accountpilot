@@ -6,6 +6,7 @@ struct AccountPilotApp: App {
     @State private var migration: ConfigMigration.Result?
 
     @AppStorage("backgroundSyncEnabled") private var backgroundSyncEnabled = true
+    private let sparkle = SparkleUpdaterController()
 
     var body: some Scene {
         Window("AccountPilot", id: "main") {
@@ -21,6 +22,9 @@ struct AccountPilotApp: App {
                 }
         }
         .windowResizability(.contentMinSize)
+        .commands {
+            SparkleUpdatesCommand(updater: sparkle)
+        }
 
         MenuBarExtra("AccountPilot", systemImage: supervisor.isRunning ? "tray.full.fill" : "tray") {
             StatusBarMenu(supervisor: supervisor)
