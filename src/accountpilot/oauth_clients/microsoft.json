@@ -1,6 +1,0 @@
-{
-  "_publisher": "AccountPilot",
-  "_note": "Bundled Microsoft public-client credentials. Public clients have no secret — only client_id is required. Authority 'common' lets users sign in with personal MS accounts AND any work/school tenant, so end users never touch Azure. To use a different app registration, save your own microsoft.json under $ACCOUNTPILOT_CONFIG_DIR/oauth_clients/microsoft.json and AccountPilot will prefer it.",
-  "client_id": "8df18e4f-dbfc-4544-a6dc-2e1fe3c45916",
-  "authority": "https://login.microsoftonline.com/common"
-}
