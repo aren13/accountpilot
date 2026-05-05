@@ -30,6 +30,7 @@ from __future__ import annotations
 import click
 
 from accountpilot.core.cli.accounts_cmds import accounts_group
+from accountpilot.core.cli.completion_cmd import completion_cmd
 from accountpilot.core.cli.config_cmd import config_group
 from accountpilot.core.cli.db_cmds import db_group
 from accountpilot.core.cli.messages_cmds import attachments_group, messages_group
@@ -51,6 +52,7 @@ def cli() -> None:
 
 cli.add_command(accounts_group)
 cli.add_command(attachments_group)
+cli.add_command(completion_cmd)
 cli.add_command(config_group)
 cli.add_command(db_group)
 cli.add_command(messages_group)
