@@ -17,6 +17,7 @@ def _seed_three_messages(db: Path) -> None:
     """Two gmail messages + one imessage, with from-attribution and an
     attachment on message id 12.
     """
+
     async def _run() -> None:
         async with open_db(db) as conn:
             await conn.execute(
@@ -50,12 +51,9 @@ def _seed_three_messages(db: Path) -> None:
                 "'2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00+00:00')"
             )
             for mid, acct, src, ext, sent, body in [
-                (10, 1, 'gmail', 'g-1',
-                 '2026-03-01T00:00:00+00:00', 'oldest msg'),
-                (11, 1, 'gmail', 'g-2',
-                 '2026-04-01T00:00:00+00:00', 'middle msg'),
-                (12, 2, 'imessage', 'im-1',
-                 '2026-05-01T00:00:00+00:00', 'newest msg'),
+                (10, 1, "gmail", "g-1", "2026-03-01T00:00:00+00:00", "oldest msg"),
+                (11, 1, "gmail", "g-2", "2026-04-01T00:00:00+00:00", "middle msg"),
+                (12, 2, "imessage", "im-1", "2026-05-01T00:00:00+00:00", "newest msg"),
             ]:
                 await conn.execute(
                     "INSERT INTO messages (id, account_id, source, "
@@ -84,6 +82,7 @@ def _seed_three_messages(db: Path) -> None:
                 "'ab/c1/abc123.bin')"
             )
             await conn.commit()
+
     asyncio.run(_run())
 
 
@@ -121,8 +120,7 @@ def test_messages_list_filtered_by_account(populated_db: Path) -> None:
     runner = CliRunner()
     result = runner.invoke(
         messages_group,
-        ["list", "--json", "--account", "1",
-         "--db-path", str(populated_db)],
+        ["list", "--json", "--account", "1", "--db-path", str(populated_db)],
     )
     payload = json.loads(result.output)
     assert {m["id"] for m in payload["data"]["messages"]} == {10, 11}
@@ -132,8 +130,7 @@ def test_messages_list_filtered_by_contact(populated_db: Path) -> None:
     runner = CliRunner()
     result = runner.invoke(
         messages_group,
-        ["list", "--json", "--contact-id", "2",
-         "--db-path", str(populated_db)],
+        ["list", "--json", "--contact-id", "2", "--db-path", str(populated_db)],
     )
     payload = json.loads(result.output)
     assert {m["id"] for m in payload["data"]["messages"]} == {10, 11, 12}
@@ -143,8 +140,7 @@ def test_messages_list_filtered_by_since(populated_db: Path) -> None:
     runner = CliRunner()
     result = runner.invoke(
         messages_group,
-        ["list", "--json", "--since", "2026-04-15",
-         "--db-path", str(populated_db)],
+        ["list", "--json", "--since", "2026-04-15", "--db-path", str(populated_db)],
     )
     payload = json.loads(result.output)
     assert {m["id"] for m in payload["data"]["messages"]} == {12}
@@ -154,8 +150,7 @@ def test_messages_list_pagination_via_cursor(populated_db: Path) -> None:
     runner = CliRunner()
     result1 = runner.invoke(
         messages_group,
-        ["list", "--json", "--limit", "2",
-         "--db-path", str(populated_db)],
+        ["list", "--json", "--limit", "2", "--db-path", str(populated_db)],
     )
     p1 = json.loads(result1.output)
     assert [m["id"] for m in p1["data"]["messages"]] == [12, 11]
@@ -163,8 +158,7 @@ def test_messages_list_pagination_via_cursor(populated_db: Path) -> None:
 
     result2 = runner.invoke(
         messages_group,
-        ["list", "--json", "--cursor", "11",
-         "--db-path", str(populated_db)],
+        ["list", "--json", "--cursor", "11", "--db-path", str(populated_db)],
     )
     p2 = json.loads(result2.output)
     assert [m["id"] for m in p2["data"]["messages"]] == [10]
@@ -187,15 +181,14 @@ def test_messages_get_imessage_with_attachment(populated_db: Path) -> None:
     assert m["email"] is None
     assert m["subject"] is None
     assert any(
-        p["role"] == "from" and p["name"] == "Charles Babbage"
-        for p in m["people"]
+        p["role"] == "from" and p["name"] == "Charles Babbage" for p in m["people"]
     )
     assert len(m["attachments"]) == 1
     a = m["attachments"][0]
     assert a["filename"] == "pic.jpg"
     assert a["mime_type"] == "image/jpeg"
     assert a["content_hash"] == "abc123"
-    assert "cas_path" not in a   # opaque; fetched separately
+    assert "cas_path" not in a  # opaque; fetched separately
 
 
 def test_messages_get_email_with_subject(populated_db: Path) -> None:
@@ -230,6 +223,7 @@ def test_messages_get_unknown_id(tmp_path: Path) -> None:
 def test_attachments_path_returns_resolved_path(populated_db: Path) -> None:
     """Returns the absolute CAS path joined to <db_path.parent>/attachments/."""
     from accountpilot.core.cli.messages_cmds import attachments_group
+
     runner = CliRunner()
     cas_root = populated_db.parent / "attachments"
     cas_root.joinpath("ab/c1").mkdir(parents=True, exist_ok=True)
@@ -251,6 +245,7 @@ def test_attachments_path_returns_resolved_path(populated_db: Path) -> None:
 
 def test_attachments_path_unknown_id(populated_db: Path) -> None:
     from accountpilot.core.cli.messages_cmds import attachments_group
+
     runner = CliRunner()
     result = runner.invoke(
         attachments_group,
@@ -263,6 +258,7 @@ def test_attachments_path_unknown_id(populated_db: Path) -> None:
 
 def test_attachments_path_missing_blob_reports_exists_false(populated_db: Path) -> None:
     from accountpilot.core.cli.messages_cmds import attachments_group
+
     runner = CliRunner()
     # Don't create the blob on disk.
     result = runner.invoke(

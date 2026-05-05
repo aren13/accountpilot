@@ -136,18 +136,20 @@ def messages_list(
                     if r["from_surname"]
                     else r["from_name"]
                 )
-            messages.append({
-                "id": r["id"],
-                "source": r["source"],
-                "account_id": r["account_id"],
-                "sent_at": r["sent_at"],
-                "thread_id": r["thread_id"],
-                "subject": r["subject"],
-                "snippet": r["snippet"],
-                "from_name": from_name,
-                "from_identifier": r["from_identifier"],
-                "has_attachments": bool(r["has_attachments"]),
-            })
+            messages.append(
+                {
+                    "id": r["id"],
+                    "source": r["source"],
+                    "account_id": r["account_id"],
+                    "sent_at": r["sent_at"],
+                    "thread_id": r["thread_id"],
+                    "subject": r["subject"],
+                    "snippet": r["snippet"],
+                    "from_name": from_name,
+                    "from_identifier": r["from_identifier"],
+                    "has_attachments": bool(r["has_attachments"]),
+                }
+            )
         next_cursor = messages[-1]["id"] if len(messages) == limit else None
         return {"messages": messages, "next_cursor": next_cursor}
 
@@ -157,9 +159,7 @@ def messages_list(
         return
     for m in result["messages"]:
         label = m["subject"] or m["snippet"][:60]
-        click.echo(
-            f"#{m['id']} [{m['source']}] {m['sent_at']}  {label}"
-        )
+        click.echo(f"#{m['id']} [{m['source']}] {m['sent_at']}  {label}")
 
 
 @messages_group.command("get")
@@ -256,12 +256,14 @@ def messages_get(message_id: int, json_out: bool, db_path: Path) -> None:
                         if row["surname"]
                         else row["name"]
                     )
-                    msg["people"].append({
-                        "role": row["role"],
-                        "id": row["id"],
-                        "name": full_name,
-                        "identifier": row["identifier"],
-                    })
+                    msg["people"].append(
+                        {
+                            "role": row["role"],
+                            "id": row["id"],
+                            "name": full_name,
+                            "identifier": row["identifier"],
+                        }
+                    )
 
             async with db.execute(
                 "SELECT id, filename, content_hash, mime_type, size_bytes "
@@ -269,13 +271,15 @@ def messages_get(message_id: int, json_out: bool, db_path: Path) -> None:
                 (message_id,),
             ) as cur:
                 async for row in cur:
-                    msg["attachments"].append({
-                        "id": row["id"],
-                        "filename": row["filename"],
-                        "content_hash": row["content_hash"],
-                        "mime_type": row["mime_type"],
-                        "size_bytes": row["size_bytes"],
-                    })
+                    msg["attachments"].append(
+                        {
+                            "id": row["id"],
+                            "filename": row["filename"],
+                            "content_hash": row["content_hash"],
+                            "mime_type": row["mime_type"],
+                            "size_bytes": row["size_bytes"],
+                        }
+                    )
 
         return {"ok": True, "message": msg}
 
@@ -292,9 +296,7 @@ def messages_get(message_id: int, json_out: bool, db_path: Path) -> None:
     label = msg.get("subject") or (msg["body_text"][:80])
     click.echo(f"#{msg['id']} [{msg['source']}] {msg['sent_at']}  {label}")
     for a in msg["attachments"]:
-        click.echo(
-            f"  attachment: {a['filename']} ({a['size_bytes']} bytes)"
-        )
+        click.echo(f"  attachment: {a['filename']} ({a['size_bytes']} bytes)")
 
 
 @click.group("attachments")
@@ -306,9 +308,7 @@ def attachments_group() -> None:
 @click.argument("attachment_id", type=int)
 @click.option("--json", "json_out", is_flag=True)
 @_db_option
-def attachments_path(
-    attachment_id: int, json_out: bool, db_path: Path
-) -> None:
+def attachments_path(attachment_id: int, json_out: bool, db_path: Path) -> None:
     """Resolve an attachment id to its absolute filesystem path.
 
     The CAS root is `<db_path.parent>/attachments/`. The `cas_path`
@@ -332,9 +332,7 @@ def attachments_path(
                     "message": f"no attachment with id={attachment_id}",
                 },
             }
-        absolute = (
-            db_path.parent / "attachments" / row["cas_path"]
-        ).resolve()
+        absolute = (db_path.parent / "attachments" / row["cas_path"]).resolve()
         return {
             "ok": True,
             "data": {

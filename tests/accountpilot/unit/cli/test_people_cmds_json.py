@@ -92,9 +92,7 @@ def test_people_list_json_envelope(db_with_people: Path) -> None:
     by_id = {p["id"]: p for p in people}
     assert by_id[1]["name"] == "Ada"
     assert by_id[1]["is_owner"] is True
-    assert by_id[1]["identifiers"] == [
-        {"kind": "email", "value": "ada@example.com"}
-    ]
+    assert by_id[1]["identifiers"] == [{"kind": "email", "value": "ada@example.com"}]
     assert by_id[1]["message_count"] == 0
     assert by_id[2]["name"] == "Charles"
     assert by_id[2]["is_owner"] is False
