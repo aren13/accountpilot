@@ -64,6 +64,16 @@ jobs:
           chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
           echo "APPLE_API_KEY_PATH=$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8" >> "$GITHUB_ENV"
 
+      - name: Build + notarize FDA helper (dist/accountpilot-fda-helper)
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          # build-app.sh expects dist/accountpilot-fda-helper to exist;
+          # release-helper.sh produces it (alongside tarballs we don't need here).
+          ./scripts/release-helper.sh
+          test -x dist/accountpilot-fda-helper
+
       - name: Build + notarize + staple the .app
         env:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
