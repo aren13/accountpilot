@@ -230,9 +230,7 @@ def test_add_duplicate_identifier_returns_error(tmp_path: Path) -> None:
             str(db),
         ],
     )
-    # Exit code is 0 because we surface the error in the JSON envelope, not via
-    # exit code — the Swift caller parses stdout regardless of exit code.
-    assert result2.exit_code == 0, result2.output
+    assert result2.exit_code == 65, result2.output
     payload = json.loads(result2.output)
     assert payload["ok"] is False
     assert payload["error"]["code"] == "ACCOUNT_EXISTS"
@@ -263,7 +261,7 @@ def test_remove_unknown_id_returns_error(populated_db: Path) -> None:
     result = runner.invoke(
         accounts_group, ["remove", "999", "--json", "--db-path", str(populated_db)]
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 65
     payload = json.loads(result.output)
     assert payload["ok"] is False
     assert payload["error"]["code"] == "ACCOUNT_NOT_FOUND"
