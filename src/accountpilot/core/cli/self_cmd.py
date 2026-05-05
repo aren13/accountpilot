@@ -100,7 +100,24 @@ def self_link(source: Path, target: Path, json_out: bool) -> None:
             sys.exit(exit_codes.DATA_ERROR)
         raise click.ClickException(f"{target} exists and is not a symlink")
 
-    target.symlink_to(source)
+    try:
+        target.symlink_to(source)
+    except OSError as exc:
+        # Most common failure: /usr/local/bin/ is root-owned on a fresh
+        # Mac without Homebrew. The user has to either pre-chown the
+        # parent dir or run with sudo.
+        if json_out:
+            _emit_envelope(
+                error={
+                    "code": "PERMISSION_DENIED",
+                    "message": (
+                        f"could not create {target}: {exc}. "
+                        f"Try: sudo ln -sf {source} {target}"
+                    ),
+                }
+            )
+            sys.exit(exit_codes.PERMISSION_DENIED)
+        raise click.ClickException(f"could not create {target}: {exc}") from exc
 
     if json_out:
         _emit_envelope(

@@ -70,3 +70,30 @@ def test_self_link_target_exists_as_file(tmp_path: Path) -> None:
     assert payload["ok"] is False
     assert payload["error"]["code"] == "TARGET_EXISTS"
     assert result.exit_code == 65  # exits with 65 per Task 3
+
+
+def test_self_link_permission_denied(tmp_path: Path) -> None:
+    """If the target's parent isn't writable, emit PERMISSION_DENIED + exit 13."""
+
+    source = tmp_path / "accountpilot"
+    source.write_text("#!/bin/bash\necho src\n")
+    source.chmod(0o755)
+
+    parent = tmp_path / "readonly_bin"
+    parent.mkdir()
+    parent.chmod(0o555)  # read+execute only — symlink in here will EACCES
+    target = parent / "accountpilot"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        self_group,
+        ["link", "--json", "--source", str(source), "--target", str(target)],
+    )
+
+    # Restore mode so tmp_path teardown can remove the dir.
+    parent.chmod(0o755)
+
+    payload = json.loads(result.output)
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "PERMISSION_DENIED"
+    assert result.exit_code == 13
