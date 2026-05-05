@@ -74,6 +74,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   flow on `macos-latest`: import cert → build .app → build DMG →
   sign update → attach to GitHub Release → append appcast → push
   to `gh-pages`. See `docs/release.md` for one-time setup.
+- **Agent-friendly CLI hardening.** `--json` on every read command:
+  `people show` and `oauth status` (the two that lacked it). Stable
+  exit codes (0/2/13/64/65/69) — every error envelope's `error.code`
+  maps to a documented exit code in
+  `src/accountpilot/core/cli/exit_codes.py`.
+  `accountpilot completion <bash|zsh|fish>` emits shell completion
+  scripts. `accountpilot self link` creates a `/usr/local/bin/`
+  symlink; first launch of the .app prompts for it.
+- **`docs/cli-contract.md`** — public agent contract: per-command
+  schemas, exit-code matrix, stability promise.
+  `tests/integration/cli_contract_test.py` validates real CLI output
+  against JSON Schemas in `tests/integration/jsonschemas/`.
+  `tests/integration/agent_smoke.sh` is a runnable add→OAuth→sync→
+  search smoke (manual; requires real Gmail + browser).
 
 ## [0.1.4] — 2026-05-04 (AP-SP4)
 

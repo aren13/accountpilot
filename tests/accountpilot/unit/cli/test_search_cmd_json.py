@@ -107,8 +107,14 @@ def test_search_json_respects_limit(db_with_searchable_messages: Path) -> None:
     # "the" appears in both messages
     result = runner.invoke(
         search_cmd,
-        ["the", "--json", "--limit", "1",
-         "--db-path", str(db_with_searchable_messages)],
+        [
+            "the",
+            "--json",
+            "--limit",
+            "1",
+            "--db-path",
+            str(db_with_searchable_messages),
+        ],
     )
     payload = json.loads(result.output)
     assert len(payload["data"]["results"]) == 1

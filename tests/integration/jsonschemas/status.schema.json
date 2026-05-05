@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "accountpilot status --json",
+  "type": "object",
+  "required": ["ok", "data", "error"],
+  "properties": {
+    "ok": { "const": true },
+    "error": { "type": "null" },
+    "data": {
+      "type": "object",
+      "required": ["accounts", "generated_at"],
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "source", "identifier", "last_sync_at", "last_error", "synced_count"],
+            "properties": {
+              "id": { "type": "integer" },
+              "source": { "type": "string" },
+              "identifier": { "type": "string" },
+              "last_sync_at": { "type": ["string", "null"] },
+              "last_error": { "type": ["string", "null"] },
+              "synced_count": { "type": "integer" }
+            }
+          }
+        },
+        "generated_at": { "type": "string" }
+      }
+    }
+  }
+}

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,7 @@ import click
 
 from accountpilot.core import paths
 from accountpilot.core.cas import CASStore
+from accountpilot.core.cli import exit_codes
 from accountpilot.core.db.connection import open_db
 from accountpilot.core.models import Identifier, IdentifierKind
 from accountpilot.core.storage import Storage
@@ -209,6 +211,7 @@ def accounts_add(
             _emit_envelope(data={"account": result["account"]})
         else:
             _emit_envelope(error=result["error"])
+            sys.exit(exit_codes.for_error_code(result["error"]["code"]))
         return
     if not result["ok"]:
         raise click.ClickException(result["error"]["message"])
@@ -293,6 +296,7 @@ def accounts_remove(account_id: int, json_out: bool, db_path: Path) -> None:
             _emit_envelope(data={"removed_id": account_id})
         else:
             _emit_envelope(error=result["error"])
+            sys.exit(exit_codes.for_error_code(result["error"]["code"]))
         return
     if not result["ok"]:
         raise click.ClickException(result["error"]["message"])

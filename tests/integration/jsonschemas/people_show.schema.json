@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "accountpilot people show <id> --json",
+  "type": "object",
+  "required": ["ok", "data", "error"],
+  "properties": {
+    "ok": { "const": true },
+    "error": { "type": "null" },
+    "data": {
+      "type": "object",
+      "required": ["person"],
+      "properties": {
+        "person": {
+          "type": "object",
+          "required": ["id", "name", "is_owner", "identifiers", "message_count", "last_message_at", "roles"],
+          "properties": {
+            "id": { "type": "integer" },
+            "name": { "type": "string" },
+            "surname": { "type": ["string", "null"] },
+            "is_owner": { "type": "boolean" },
+            "identifiers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["kind", "value"],
+                "properties": {
+                  "kind": { "type": "string" },
+                  "value": { "type": "string" }
+                }
+              }
+            },
+            "message_count": { "type": "integer" },
+            "last_message_at": { "type": ["string", "null"] },
+            "roles": {
+              "type": "object",
+              "additionalProperties": { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

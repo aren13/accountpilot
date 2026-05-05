@@ -6,6 +6,7 @@ struct ContentView: View {
 
     @State private var didProbeFDA: Bool = false
     @State private var fdaGranted: Bool = false
+    @StateObject private var cliPrompt = CLILinkPrompt()
 
     var body: some View {
         Group {
@@ -15,6 +16,7 @@ struct ContentView: View {
             } else if !fdaGranted {
                 FDAWizardView(onGranted: {
                     fdaGranted = true
+                    cliPrompt.checkOnLaunch()
                 })
             } else {
                 VStack(spacing: 0) {
@@ -22,12 +24,30 @@ struct ContentView: View {
                     Divider()
                     footer
                 }
+                .alert(
+                    "Install command-line tools?",
+                    isPresented: $cliPrompt.shouldShow
+                ) {
+                    Button("Install") {
+                        Task { await cliPrompt.install() }
+                    }
+                    Button("Skip", role: .cancel) {
+                        cliPrompt.decline()
+                    }
+                } message: {
+                    Text(
+                        "This creates a symlink at /usr/local/bin/accountpilot so you can run AccountPilot from any terminal. You can remove it later with `rm /usr/local/bin/accountpilot`."
+                    )
+                }
             }
         }
         .task {
             let result = await FDAProbe.probe()
             fdaGranted = result.granted
             didProbeFDA = true
+            if fdaGranted {
+                cliPrompt.checkOnLaunch()
+            }
         }
     }
 

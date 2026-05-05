@@ -223,8 +223,6 @@ def probe_fda(json_out: bool) -> None:
         granted, reason, message = False, "PROBE_FAILED", str(exc)
 
     if json_out:
-        _emit_envelope(
-            data={"granted": granted, "reason": reason, "message": message}
-        )
+        _emit_envelope(data={"granted": granted, "reason": reason, "message": message})
         return
     click.echo(f"FDA probe: granted={granted} reason={reason} {message}")
