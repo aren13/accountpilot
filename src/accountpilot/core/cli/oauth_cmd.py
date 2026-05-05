@@ -212,9 +212,38 @@ def login_microsoft(
     default=paths.secrets_dir,
     show_default="$ACCOUNTPILOT_DATA_DIR/secrets",
 )
-def status(secrets_root: Path) -> None:
+@click.option("--json", "json_out", is_flag=True)
+def status(secrets_root: Path, json_out: bool) -> None:
     """List which oauth secret files are present."""
     base = secrets_root / "oauth"
+
+    if json_out:
+        from datetime import UTC, datetime
+
+        tokens: list[dict[str, Any]] = []
+        if base.exists():
+            for provider_dir in sorted(base.iterdir()):
+                if not provider_dir.is_dir():
+                    continue
+                for f in sorted(provider_dir.glob("*.json")):
+                    try:
+                        account_id = int(f.stem)
+                    except ValueError:
+                        continue
+                    mtime = datetime.fromtimestamp(
+                        f.stat().st_mtime, tz=UTC
+                    ).isoformat()
+                    tokens.append(
+                        {
+                            "provider": provider_dir.name,
+                            "account_id": account_id,
+                            "secret_path": str(f),
+                            "modified_at": mtime,
+                        }
+                    )
+        _emit_envelope(data={"tokens": tokens})
+        return
+
     if not base.exists():
         click.echo("no oauth secrets present")
         return
