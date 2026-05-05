@@ -6,8 +6,8 @@ name: Release .app
 # entry on the gh-pages branch.
 #
 # Required secrets (see docs/release.md for setup):
-#   APPLE_DEV_ID_CERT_P12_BASE64    Developer ID Application .p12 (base64)
-#   APPLE_DEV_ID_CERT_PASSWORD      password for the .p12
+#   APPLE_CERT_P12_BASE64    Developer ID Application .p12 (base64)
+#   APPLE_CERT_PASSWORD      password for the .p12
 #   APPLE_API_KEY_BASE64            App Store Connect API .p8 (base64)
 #   APPLE_API_KEY_ID                10-char API key id
 #   APPLE_API_ISSUER_ID             UUID issuer id
@@ -50,8 +50,8 @@ jobs:
       - name: Import Developer ID Application certificate
         uses: apple-actions/import-codesign-certs@v3
         with:
-          p12-file-base64: ${{ secrets.APPLE_DEV_ID_CERT_P12_BASE64 }}
-          p12-password: ${{ secrets.APPLE_DEV_ID_CERT_PASSWORD }}
+          p12-file-base64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.APPLE_CERT_PASSWORD }}
 
       - name: Write App Store Connect API key
         env:

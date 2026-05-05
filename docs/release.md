@@ -48,8 +48,8 @@ base64 -i developer-id.p12 | pbcopy   # copies to clipboard
 
 Add as GitHub Actions secrets:
 
-- `APPLE_DEV_ID_CERT_P12_BASE64` — the base64 string
-- `APPLE_DEV_ID_CERT_PASSWORD` — the password you set during export
+- `APPLE_CERT_P12_BASE64` — the base64 string
+- `APPLE_CERT_PASSWORD` — the password you set during export
 
 ### App Store Connect API key (for notarytool in CI)
 

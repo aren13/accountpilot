@@ -44,7 +44,7 @@ targets:
         LSUIElement: true
         NSHumanReadableCopyright: "Copyright (C) 2026 Hasan Arda Eren. AGPL-3.0-or-later."
         SUFeedURL: "https://aren13.github.io/accountpilot/appcast.xml"
-        SUPublicEDKey: "REPLACE_AFTER_GENERATING_KEY"
+        SUPublicEDKey: "+PmzNBkIB9C+q/LTc573ufxI8FcBtUMGzKB7kgIc0XI="
         SUEnableInstallerLauncherService: false
     entitlements:
       path: AccountPilot/AccountPilot.entitlements
