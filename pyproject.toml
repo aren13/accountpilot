@@ -55,6 +55,7 @@ Changelog = "https://github.com/aren13/accountpilot/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
+    "jsonschema>=4.20",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",

@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "accountpilot messages list --json",
+  "type": "object",
+  "required": ["ok", "data", "error"],
+  "properties": {
+    "ok": { "const": true },
+    "error": { "type": "null" },
+    "data": {
+      "type": "object",
+      "required": ["messages", "next_cursor"],
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "source", "account_id", "sent_at", "has_attachments"],
+            "properties": {
+              "id": { "type": "integer" },
+              "source": { "type": "string" },
+              "account_id": { "type": "integer" },
+              "sent_at": { "type": "string" },
+              "thread_id": { "type": ["string", "null"] },
+              "subject": { "type": ["string", "null"] },
+              "snippet": { "type": ["string", "null"] },
+              "from_name": { "type": ["string", "null"] },
+              "from_identifier": { "type": ["string", "null"] },
+              "has_attachments": { "type": "boolean" }
+            }
+          }
+        },
+        "next_cursor": { "type": ["integer", "null"] }
+      }
+    }
+  }
+}
