@@ -58,6 +58,7 @@ def _db_option(f: Any) -> Any:
 @click.option("--json", "json_out", is_flag=True, default=False)
 def people_list(db_path: Path, owners: bool, json_out: bool) -> None:
     if json_out:
+
         async def _run_json() -> None:
             sql_main = (
                 "SELECT p.id, p.name, p.surname, p.is_owner, "
@@ -93,10 +94,12 @@ def people_list(db_path: Path, owners: bool, json_out: bool) -> None:
                         tuple(people_by_id.keys()),
                     ) as cur2:
                         async for ident in cur2:
-                            people_by_id[ident["person_id"]]["identifiers"].append({
-                                "kind": ident["kind"],
-                                "value": ident["value"],
-                            })
+                            people_by_id[ident["person_id"]]["identifiers"].append(
+                                {
+                                    "kind": ident["kind"],
+                                    "value": ident["value"],
+                                }
+                            )
 
             ordered = [people_by_id[i] for i in ordered_ids]
             _emit_envelope(data={"people": ordered})
@@ -126,7 +129,72 @@ def people_list(db_path: Path, owners: bool, json_out: bool) -> None:
 @people_group.command("show")
 @click.argument("person_id", type=int)
 @_db_option
-def people_show(person_id: int, db_path: Path) -> None:
+@click.option("--json", "json_out", is_flag=True, default=False)
+def people_show(person_id: int, db_path: Path, json_out: bool) -> None:
+    if json_out:
+
+        async def _run_json() -> None:
+            async with open_db(db_path) as db:
+                async with db.execute(
+                    "SELECT id, name, surname, is_owner FROM people WHERE id = ?",
+                    (person_id,),
+                ) as cur:
+                    person = await cur.fetchone()
+                if person is None:
+                    _emit_envelope(
+                        error={
+                            "code": "PERSON_NOT_FOUND",
+                            "message": f"no person with id={person_id}",
+                        }
+                    )
+                    return
+
+                async with db.execute(
+                    "SELECT kind, value FROM identifiers WHERE person_id = ? "
+                    "ORDER BY id",
+                    (person_id,),
+                ) as cur:
+                    idents = [
+                        {"kind": r["kind"], "value": r["value"]}
+                        for r in await cur.fetchall()
+                    ]
+
+                async with db.execute(
+                    "SELECT mp.role, COUNT(*) AS n, MAX(m.sent_at) AS last_at "
+                    "FROM message_people mp "
+                    "JOIN messages m ON m.id = mp.message_id "
+                    "WHERE mp.person_id = ? GROUP BY mp.role",
+                    (person_id,),
+                ) as cur:
+                    roles: dict[str, int] = {}
+                    last_at: str | None = None
+                    total = 0
+                    for r in await cur.fetchall():
+                        roles[r["role"]] = r["n"]
+                        total += r["n"]
+                        if r["last_at"] is not None and (
+                            last_at is None or r["last_at"] > last_at
+                        ):
+                            last_at = r["last_at"]
+
+            _emit_envelope(
+                data={
+                    "person": {
+                        "id": person["id"],
+                        "name": person["name"],
+                        "surname": person["surname"],
+                        "is_owner": bool(person["is_owner"]),
+                        "identifiers": idents,
+                        "message_count": total,
+                        "last_message_at": last_at,
+                        "roles": roles,
+                    }
+                }
+            )
+
+        asyncio.run(_run_json())
+        return
+
     async def _run() -> None:
         async with open_db(db_path) as db:
             async with db.execute(
