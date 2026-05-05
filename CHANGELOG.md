@@ -59,6 +59,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `accountpilot people list --json`.** All return the standard JSON
   envelope. `messages list` paginates by `id` cursor. `search`
   returns FTS5 BM25-ranked results.
+- **Sparkle auto-update + DMG distribution.** Tagged `v*` releases
+  produce a notarized DMG attached to the GitHub Release plus an
+  appcast entry on the `gh-pages` branch. The .app's main menu has
+  a "Check for Updates…" item. EdDSA-signed updates verify
+  authenticity. Bundle ID + TeamID stay constant across updates so
+  the FDA grant survives.
+- **`app/scripts/build-dmg.sh`** wraps `create-dmg` to package the
+  signed .app into a notarized + stapled DMG.
+  **`scripts/sign-update.sh`** generates Sparkle's EdDSA signature
+  for the appcast entry. **`scripts/append-appcast-entry.sh`** is
+  an idempotent appcast XML editor.
+- **`.github/workflows/release-app.yml`** orchestrates the full
+  flow on `macos-latest`: import cert → build .app → build DMG →
+  sign update → attach to GitHub Release → append appcast → push
+  to `gh-pages`. See `docs/release.md` for one-time setup.
 
 ## [0.1.4] — 2026-05-04 (AP-SP4)
 
