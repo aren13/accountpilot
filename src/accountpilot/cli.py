@@ -37,6 +37,7 @@ from accountpilot.core.cli.messages_cmds import attachments_group, messages_grou
 from accountpilot.core.cli.oauth_cmd import oauth_group
 from accountpilot.core.cli.people_cmds import people_group
 from accountpilot.core.cli.search_cmd import search_cmd
+from accountpilot.core.cli.self_cmd import self_group
 from accountpilot.core.cli.service_cmd import service_group
 from accountpilot.core.cli.setup_cmd import setup_cmd
 from accountpilot.core.cli.status_cmd import status_cmd
@@ -59,6 +60,7 @@ cli.add_command(messages_group)
 cli.add_command(oauth_group)
 cli.add_command(people_group)
 cli.add_command(search_cmd)
+cli.add_command(self_group)
 cli.add_command(service_group)
 cli.add_command(setup_cmd)
 cli.add_command(status_cmd)
