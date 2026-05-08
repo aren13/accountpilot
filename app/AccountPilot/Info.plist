@@ -26,5 +26,11 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright (C) 2026 Hasan Arda Eren. AGPL-3.0-or-later.</string>
+	<key>SUEnableInstallerLauncherService</key>
+	<false/>
+	<key>SUFeedURL</key>
+	<string>https://aren13.github.io/accountpilot/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>+PmzNBkIB9C+q/LTc573ufxI8FcBtUMGzKB7kgIc0XI=</string>
 </dict>
 </plist>
