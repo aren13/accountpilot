@@ -6,5 +6,13 @@
     <link>https://aren13.github.io/accountpilot/appcast.xml</link>
     <description>AccountPilot release feed</description>
     <language>en</language>
+      <item>
+      <title>Version 0.2.1</title>
+      <pubDate>Fri, 08 May 2026 14:45:21 UTC</pubDate>
+      <sparkle:version>0.2.1</sparkle:version>
+      <sparkle:shortVersionString>0.2.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/aren13/accountpilot/releases/download/v0.2.1/AccountPilot-0.2.1.dmg" type="application/octet-stream" sparkle:edSignature="kCwb1cRKkXiXhwzvIhVDldFzpuEWQS1jCqS7NgCwu5FnIp5HsQ5/gOBq5tRqESekCf3hbIr9oXMlU6Sh9OIKCQ==" length="43693130" />
+    </item>
   </channel>
 </rss>
