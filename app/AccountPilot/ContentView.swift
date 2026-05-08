@@ -57,7 +57,7 @@ struct ContentView: View {
                 Text("Imported \(count) account(s) from config.yaml")
                     .font(.caption).foregroundStyle(.green)
             }
-            Text("AccountPilot 0.2.0")
+            Text("AccountPilot 0.2.1")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .padding(.vertical, 8)

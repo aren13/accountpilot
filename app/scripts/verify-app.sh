@@ -65,8 +65,8 @@ pass "notarization stapled"
 
 # 6. Public CLI works
 cli_version="$("$APP_BUNDLE/Contents/Resources/bin/accountpilot" --version)"
-echo "$cli_version" | grep -q "0.2.0" \
-    || fail "bundled CLI does not report 0.2.0 (got: $cli_version)"
+echo "$cli_version" | grep -q "0.2.1" \
+    || fail "bundled CLI does not report 0.2.1 (got: $cli_version)"
 pass "CLI reports correct version"
 
 # 7. FDA helper runs (returns EACCES without grant — that's expected)
