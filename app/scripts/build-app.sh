@@ -4,7 +4,11 @@
 #
 # Pre-reqs:
 #   - helpers/fda-helper/release-helper.sh has been run (dist/accountpilot-fda-helper exists)
-#   - notarization keychain profile 'accountpilot-notary' exists
+#
+# Notarization auth (mirrors scripts/release-helper.sh):
+#   Mode A (local): APPLE_NOTARY_PROFILE=accountpilot-notary (default)
+#   Mode B (CI):    APPLE_API_KEY_PATH + APPLE_API_KEY_ID + APPLE_API_ISSUER_ID
+#                   takes precedence when set.
 
 set -euo pipefail
 
@@ -42,7 +46,21 @@ echo "==> [5/5] notarize + staple"
 ZIP="$DIST/AccountPilot-staging.zip"
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP_BUNDLE" "$ZIP"
-xcrun notarytool submit "$ZIP" --keychain-profile accountpilot-notary --wait
+
+# Auth resolution mirrors scripts/release-helper.sh: API key wins if set.
+if [ -n "${APPLE_API_KEY_PATH:-}" ]; then
+    if [ -z "${APPLE_API_KEY_ID:-}" ] || [ -z "${APPLE_API_ISSUER_ID:-}" ]; then
+        echo "error: APPLE_API_KEY_PATH set but key-id or issuer-id missing" >&2
+        exit 64
+    fi
+    NOTARY_AUTH=(--key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID")
+    echo "==> notary auth: App Store Connect API key"
+else
+    NOTARY_AUTH=(--keychain-profile "${APPLE_NOTARY_PROFILE:-accountpilot-notary}")
+    echo "==> notary auth: keychain profile ${APPLE_NOTARY_PROFILE:-accountpilot-notary}"
+fi
+
+xcrun notarytool submit "$ZIP" "${NOTARY_AUTH[@]}" --wait
 xcrun stapler staple "$APP_BUNDLE"
 xcrun stapler validate "$APP_BUNDLE"
 rm -f "$ZIP"
