@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] — IN PROGRESS (AP-SP5)
+## [0.2.1] — 2026-05-08 (AP-SP5)
+
+### Fixed
+- **Notarized .app/.dmg distribution.** `app/scripts/build-app.sh`
+  hardcoded `--keychain-profile accountpilot-notary` with no fallback,
+  so the GitHub Actions release workflow failed at `notarytool submit`
+  ("No Keychain password item found for profile: accountpilot-notary")
+  even though the workflow already exported `APPLE_API_KEY_PATH` /
+  `APPLE_API_KEY_ID` / `APPLE_API_ISSUER_ID`. `build-app.sh` now uses
+  the same dual-mode auth resolution as `scripts/release-helper.sh` and
+  `app/scripts/build-dmg.sh`: API key wins if set, else fall back to
+  the local keychain profile. 0.2.1 is the first tag whose `Release
+  .app` workflow can complete end-to-end and ship the DMG + appcast
+  entry; 0.2.0 shipped to PyPI but never produced a `.app` artifact.
+
+## [0.2.0] — 2026-05-05 (AP-SP5)
 
 ### Added
 - **macOS .app distribution.** AccountPilot now ships as a drag-to-Applications
